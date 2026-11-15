@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<!-- Materiale didattico di Prof. Di Filippo Davide (STA). Autore: Prof. Di Filippo Davide.
+     Codice: GNU GPL v3 o successiva (SPDX: GPL-3.0-or-later), vedi LICENSE.
+     Contenuti didattici: CC BY-SA 4.0, vedi LICENSE-CONTENUTI.
+     Termine aggiuntivo (GPLv3, sez. 7b): le versioni modificate devono mantenere visibile
+     nella pagina la dicitura "Autore originale: Prof. Di Filippo Davide". -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Prof. Di Filippo Davide">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Il motore in corrente continua</title>
+<style>
+:root{--bg:#f2f4f8;--surface:#fff;--ink:#17212e;--muted:#5a6676;--line:#d3dae3;--blu:#1e5aa0}
+@media (prefers-color-scheme: dark){:root{color-scheme:dark;--bg:#10151c;--surface:#19212b;--ink:#e8edf3;--muted:#9ba8b7;--line:#2d3846;--blu:#6ea9ea}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5}
+main{max-width:760px;margin:0 auto;padding:32px 16px 48px;display:flex;flex-direction:column;gap:16px}
+.byline{font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--blu)}
+h1{margin:0;font-size:1.7rem;text-wrap:balance}
+p{margin:0;color:var(--muted)}
+a.card{display:block;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;text-decoration:none;color:inherit}
+a.card:hover,a.card:focus-visible{border-color:var(--blu);outline:none}
+a.card h2{margin:0 0 4px;font-size:1.15rem;color:var(--blu)}
+footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);padding-top:10px}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="byline">Prof. Di Filippo Davide · STA</div>
+    <h1>Il motore in corrente continua</h1>
+    <p>Simulazioni per la lezione sul rendimento: potenze, perdite per effetto Joule, avviamento e regime.</p>
+  </header>
+  <a class="card" href="sollevamento-massa.html">
+    <h2>Il motore solleva una massa</h2>
+    <p>Animazione: la massa parte da ferma e sale di 2 m. Coppia motrice contro coppia resistente, transitorio, bilancio delle energie.</p>
+  </a>
+  <a class="card" href="avviamento-motore.html">
+    <h2>Esercizio: l'avviamento del motore</h2>
+    <p>Inserisci i dati di targa, calcola corrente e potenza all'avvio, poi guarda il motore partire e le curve di velocità, corrente, potenze e rendimento.</p>
+  </a>
+  <footer>© 2026 Prof. Di Filippo Davide. Materiale didattico per le classi di STA. Codice GPLv3, contenuti CC BY-SA 4.0.</footer>
+</main>
+</body>
+</html>

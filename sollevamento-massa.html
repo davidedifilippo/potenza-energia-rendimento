@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<!-- Materiale didattico di Prof. Di Filippo Davide (STA). Autore: Prof. Di Filippo Davide.
+     Codice: GNU GPL v3 o successiva (SPDX: GPL-3.0-or-later), vedi LICENSE.
+     Contenuti didattici: CC BY-SA 4.0, vedi LICENSE-CONTENUTI.
+     Termine aggiuntivo (GPLv3, sez. 7b): le versioni modificate devono mantenere visibile
+     nella pagina la dicitura "Autore originale: Prof. Di Filippo Davide". -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Prof. Di Filippo Davide">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motore c.c. che solleva una massa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: a sinistra banco di prova e grafici nel tempo, a destra comandi e strumenti, sotto i calcoli.
+   Colori come nella dispensa: blu = assorbita/corrente, verde = utile/motrice, rosso = Joule/resistente, arancio = carico. */
+:root{
+  --bg:#f2f4f8; --surface:#ffffff; --ink:#17212e; --muted:#5a6676; --line:#d3dae3;
+  --blu:#1e5aa0; --verde:#1e8246; --rosso:#be2828; --arancio:#d97412;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#10151c; --surface:#19212b; --ink:#e8edf3; --muted:#9ba8b7; --line:#2d3846;
+    --blu:#6ea9ea; --verde:#56c487; --rosso:#f27474; --arancio:#f3a24d;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#10151c; --surface:#19212b; --ink:#e8edf3; --muted:#9ba8b7; --line:#2d3846;
+  --blu:#6ea9ea; --verde:#56c487; --rosso:#f27474; --arancio:#f3a24d;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:16px}
+.byline{font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--blu);margin-bottom:2px}
+footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);padding-top:10px}
+header h1{margin:0;font-size:1.55rem;font-weight:700;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:75ch}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h2{margin:0 0 10px;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.card h3{margin:0 0 4px;font-size:1rem;font-weight:700}
+.col{display:flex;flex-direction:column;gap:16px}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+svg{display:block;width:100%;height:auto}
+.s-ink{stroke:var(--ink);fill:none}
+.s-line{stroke:var(--line);fill:none}
+.t{fill:var(--ink);font-family:var(--font-body);font-size:13px}
+.t-m{fill:var(--muted);font-family:var(--font-body);font-size:12px}
+.t-n{font-family:var(--font-num);font-size:13px;font-weight:600}
+.f-blu{fill:var(--blu)} .f-verde{fill:var(--verde)} .f-rosso{fill:var(--rosso)} .f-arancio{fill:var(--arancio)}
+.st-blu{stroke:var(--blu)} .st-verde{stroke:var(--verde)} .st-rosso{stroke:var(--rosso)} .st-arancio{stroke:var(--arancio)} .st-muted{stroke:var(--muted)}
+
+.controls{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+label.lab,.lab{font-weight:600}
+input[type=range]{width:100%;accent-color:var(--arancio)}
+button{font:inherit;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--blu);outline-offset:2px}
+button.primary{background:var(--blu);border-color:var(--blu);color:var(--surface);min-width:7.5em}
+button[aria-pressed="true"]{border-color:var(--arancio);box-shadow:inset 0 0 0 1px var(--arancio)}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.85rem;font-weight:600;border:1.5px solid currentColor;white-space:nowrap}
+.pill.ok{color:var(--verde)} .pill.warn{color:var(--arancio)} .pill.bad{color:var(--rosso)} .pill.info{color:var(--blu)}
+.massval{font-size:1.5rem;font-weight:600}
+.hint{color:var(--muted);font-size:.88rem;margin:0}
+
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tile .k{font-size:.78rem;color:var(--muted)}
+.tile .v{font-size:1.12rem;font-weight:600;white-space:nowrap}
+.tile .u{font-size:.76rem;color:var(--muted);font-family:var(--font-body);font-weight:400}
+.tile .sub{font-size:.74rem;color:var(--muted)}
+
+.bar{position:relative;height:26px;border-radius:5px;background:color-mix(in srgb,var(--line) 55%,transparent);overflow:hidden;display:flex}
+.bar > span{display:block;height:100%}
+.bg-blu{background:var(--blu)} .bg-verde{background:var(--verde)} .bg-rosso{background:var(--rosso)} .bg-arancio{background:var(--arancio)}
+.axis{display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:2px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;font-size:.92rem}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:6px}
+.erow{display:grid;grid-template-columns:11.5em minmax(0,1fr) 6.2em;gap:10px;align-items:center;margin-top:8px}
+.erow .bar{height:18px}
+.erow .val{text-align:right;font-weight:600;white-space:nowrap}
+@media (max-width:480px){.erow{grid-template-columns:1fr 6.2em}.erow .bar{grid-column:1 / -1;order:3}}
+.verdict{margin:12px 0 0;font-weight:600}
+
+.calcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px 32px}
+.calc{margin:0;padding:0;list-style:none}
+.calc li{padding:6px 0;border-bottom:1px dashed var(--line)}
+.calc b{font-weight:600}
+.alert{border:1.5px solid var(--rosso);color:var(--rosso);border-radius:8px;padding:8px 12px;font-weight:600}
+.alert[hidden]{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="byline">Prof. Di Filippo Davide · STA</div>
+  <h1>Il motore in c.c. solleva una massa</h1>
+  <p>Stesso motore della dispensa: <span class="num">V = 12 V</span>, <span class="num">R<sub>a</sub> = 1 Ω</span>, <span class="num">k = 0,004 V/(giri/min)</span>, puleggia <span class="num">r = 1 cm</span>. La massa parte da ferma: premi Avvia e osserva la coppia motrice che scende fino a pareggiare la coppia resistente. Le masse del rotore e della puleggia sono trascurate.</p>
+</header>
+
+<div class="grid">
+  <div class="col">
+    <!-- SCENA -->
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <h2 style="margin:0">Banco di prova</h2>
+        <span class="pill info" id="fase">Spunto (t = 0)</span>
+      </div>
+      <svg viewBox="0 0 470 480" role="img" aria-label="Alimentatore, motore con puleggia, fune e massa che sale lungo un righello di 2 metri">
+        <defs>
+          <marker id="ar-v" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="8" refY="6" orient="auto"><path d="M0,1 L12,6 L0,11 z" class="f-verde"/></marker>
+          <marker id="ar-r" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="8" refY="6" orient="auto"><path d="M0,1 L12,6 L0,11 z" class="f-rosso"/></marker>
+          <marker id="ar-b" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" refX="8" refY="6" orient="auto"><path d="M0,1 L12,6 L0,11 z" class="f-blu"/></marker>
+        </defs>
+        <!-- alimentatore -->
+        <path class="s-ink" stroke-width="2" d="M50,60 V88 M50,112 V140"/>
+        <path class="s-ink" stroke-width="2" d="M34,88 H66"/>
+        <path class="s-ink" stroke-width="4" d="M42,112 H58"/>
+        <text class="t" x="20" y="82">+</text>
+        <text class="t t-n" x="8" y="126">12 V</text>
+        <path class="s-ink" stroke-width="2" d="M50,60 H180 M50,140 H180"/>
+        <path id="flowTop" class="st-blu" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 14" d="M54,60 H178"/>
+        <path id="flowBot" class="st-blu" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="2 14" d="M178,140 H54"/>
+        <text class="t t-n f-blu" x="72" y="48" id="sI">I = 12,00 A</text>
+        <text class="t-m" x="72" y="160" id="sPass">P_ass = 144 W</text>
+        <!-- motore -->
+        <rect x="180" y="30" width="140" height="140" rx="14" class="s-ink" stroke-width="2"/>
+        <rect id="heat" x="181" y="31" width="138" height="138" rx="13" class="f-rosso" opacity="0.1"/>
+        <text class="t-m" x="188" y="22">motore c.c.</text>
+        <text class="t t-n f-rosso" x="326" y="48" id="sPJ">P_J = 144 W</text>
+        <text class="t-m" x="326" y="64">calore</text>
+        <text class="t t-n f-arancio" x="326" y="96" id="sN">0 giri/min</text>
+        <text class="t t-n" x="326" y="116" id="sE">E = 0,0 V</text>
+        <text class="t-m" x="326" y="150">altezza</text>
+        <text class="t t-n" x="326" y="171" id="sH" style="font-size:17px">0,00 m</text>
+        <text class="t-m" x="400" y="150">tempo</text>
+        <text class="t t-n" x="400" y="171" id="sT" style="font-size:17px">0,00 s</text>
+        <!-- puleggia -->
+        <circle cx="250" cy="100" r="30" fill="var(--surface)" class="s-ink" stroke-width="2"/>
+        <g id="spokes">
+          <path class="s-ink" stroke-width="2" d="M250,72 V128 M222,100 H278"/>
+          <circle cx="250" cy="80" r="4" class="f-arancio"/>
+        </g>
+        <circle cx="250" cy="100" r="5" fill="var(--ink)"/>
+        <circle cx="250" cy="100" r="30" fill="none" class="st-arancio" stroke-width="3" stroke-dasharray="94 95" transform="rotate(-180 250 100)"/>
+        <g id="ruler"></g>
+        <line id="rope" x1="280" y1="100" x2="280" y2="407" class="st-arancio" stroke-width="3"/>
+        <!-- massa -->
+        <g id="mass">
+          <line x1="312" y1="44" x2="352" y2="44" class="st-blu" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <rect x="248" y="0" width="64" height="44" rx="4" class="f-arancio" opacity="0.28"/>
+          <rect x="248" y="0" width="64" height="44" rx="4" fill="none" class="st-arancio" stroke-width="2"/>
+          <text class="t t-n" x="280" y="27" text-anchor="middle" id="sM">0,78 kg</text>
+          <line id="fArrow" x1="232" y1="20" x2="232" y2="-12" class="st-verde" stroke-width="3" marker-end="url(#ar-v)"/>
+          <text class="t t-n f-verde" x="220" y="2" text-anchor="end" id="sF">F = 45,8 N</text>
+          <line id="pArrow" x1="232" y1="26" x2="232" y2="54" class="st-rosso" stroke-width="3" marker-end="url(#ar-r)"/>
+          <text class="t t-n f-rosso" x="220" y="50" text-anchor="end" id="sP">P = 7,64 N</text>
+          <line x1="118" y1="38" x2="118" y2="8" class="st-blu" stroke-width="3" marker-end="url(#ar-b)" id="vArrow"/>
+          <text class="t t-n f-blu" x="106" y="28" text-anchor="end" id="sV">v = 0,00 m/s</text>
+        </g>
+        <path class="s-ink" stroke-width="2" d="M236,451 H330"/>
+      </svg>
+      <p class="hint">F è il tiro della fune, P il peso: finché F &gt; P la massa accelera. La puleggia è disegnata ingrandita: per 2 m quella vera compie <span class="num" id="giriTot">31,8</span> giri (compiuti: <span class="num" id="giriNow">0,0</span>).</p>
+    </div>
+
+    <!-- GRAFICI -->
+    <div class="card">
+      <h2>Andamento nel tempo</h2>
+      <svg id="charts" viewBox="0 0 540 190" role="img" aria-label="Grafici di velocità e corrente in funzione del tempo"></svg>
+      <p class="hint" id="chartNote"></p>
+    </div>
+  </div>
+
+  <!-- COMANDI + STRUMENTI -->
+  <div class="col">
+    <div class="card controls">
+      <h2>Carico e partenza</h2>
+      <div class="row" style="justify-content:space-between">
+        <label class="lab" for="massa">Massa appesa alla fune</label>
+        <span><span class="num massval" id="massOut">0,78 kg</span> &nbsp;<span class="pill ok" id="stato">Carico nominale</span></span>
+      </div>
+      <input type="range" id="massa" min="0.05" max="4.67" step="0.01" value="0.78">
+      <div class="row" id="presets">
+        <button type="button" data-i="0.4" aria-pressed="false">Leggero</button>
+        <button type="button" data-i="2" aria-pressed="true">Nominale</button>
+        <button type="button" data-i="4" aria-pressed="false">Sovraccarico</button>
+        <button type="button" data-i="12" aria-pressed="false">Rotore bloccato</button>
+      </div>
+      <div class="row">
+        <span class="lab">La massa parte</span>
+        <span class="row" id="modes" style="gap:4px">
+          <button type="button" data-m="fermo" aria-pressed="true">da ferma</button>
+          <button type="button" data-m="regime" aria-pressed="false">già a regime (sezione 7)</button>
+        </span>
+      </div>
+      <div class="row">
+        <button type="button" class="primary" id="play">▶ Avvia</button>
+        <button type="button" id="reset">Ricomincia</button>
+        <span style="flex:1"></span>
+        <span class="hint">Rallentatore:</span>
+        <span class="row" id="speeds" style="gap:4px">
+          <button type="button" data-s="1" aria-pressed="false">no</button>
+          <button type="button" data-s="0.25" aria-pressed="false">÷4</button>
+          <button type="button" data-s="0.1" aria-pressed="true">÷10</button>
+          <button type="button" data-s="0.025" aria-pressed="false">÷40</button>
+        </span>
+      </div>
+      <div class="alert" id="alert" hidden>Rotore bloccato: la coppia di spunto è uguale alla coppia resistente, la massa non parte e tutti i 144 W assorbiti diventano calore. Gli avvolgimenti si bruciano.</div>
+    </div>
+
+    <div class="card">
+      <h2>Coppia motrice contro coppia resistente</h2>
+      <div class="erow"><span>Motrice C<sub>m</sub> = k<sub>C</sub>·I</span><div class="bar"><span class="bg-verde" id="bCm"></span></div><span class="val num" id="vCm">0,458 N·m</span></div>
+      <div class="erow"><span>Resistente C<sub>r</sub> = m·g·r</span><div class="bar"><span class="bg-rosso" id="bCr"></span></div><span class="val num" id="vCr">0,076 N·m</span></div>
+      <p class="verdict" id="verdict"></p>
+    </div>
+
+    <div class="card">
+      <h2>Valori in questo istante</h2>
+      <div class="tiles">
+        <div class="tile"><div class="k">Velocità n</div><div class="v num"><span id="tN">0</span> <span class="u">giri/min</span></div><div class="sub num" id="rN"></div></div>
+        <div class="tile"><div class="k">F.c.e.m. E</div><div class="v num"><span id="tE">0,0</span> <span class="u">V</span></div><div class="sub num" id="rE"></div></div>
+        <div class="tile"><div class="k">Corrente I</div><div class="v num"><span id="tI">12,00</span> <span class="u">A</span></div><div class="sub num" id="rI"></div></div>
+        <div class="tile"><div class="k">Tiro della fune F</div><div class="v num"><span id="tF">45,8</span> <span class="u">N</span></div><div class="sub num" id="rF"></div></div>
+        <div class="tile"><div class="k">Velocità di salita v</div><div class="v num"><span id="tV">0,00</span> <span class="u">m/s</span></div><div class="sub num" id="rV"></div></div>
+        <div class="tile"><div class="k">Accelerazione a</div><div class="v num"><span id="tA">49,0</span> <span class="u">m/s²</span></div><div class="sub num">a regime 0</div></div>
+        <div class="tile"><div class="k">Costante di tempo τ</div><div class="v num"><span id="tTau">0,053</span> <span class="u">s</span></div><div class="sub num" id="rTau"></div></div>
+        <div class="tile"><div class="k">Tempo per 2 m</div><div class="v num"><span id="tT">0,82</span> <span class="u">s</span></div><div class="sub num" id="rT"></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Potenze in questo istante (scala 0–144 W)</h2>
+      <div class="bar" aria-hidden="true"><span class="bg-verde" id="bPu"></span><span class="bg-rosso" id="bPJ"></span></div>
+      <div class="axis num"><span>0</span><span>36</span><span>72</span><span>108</span><span>144 W</span></div>
+      <div class="legend">
+        <span><i class="bg-blu"></i>P<sub>ass</sub> = <b class="num" id="lPass"></b></span>
+        <span><i class="bg-verde"></i>P<sub>u</sub> = E·I = <b class="num" id="lPu"></b></span>
+        <span><i class="bg-rosso"></i>P<sub>J</sub> = <b class="num" id="lPJ"></b></span>
+      </div>
+      <p class="hint" style="margin-top:8px">Rendimento a regime: η = <b class="num" id="lEta"></b></p>
+    </div>
+
+    <div class="card">
+      <h2>Energie durante la salita</h2>
+      <div class="erow"><span>Assorbita W<sub>ass</sub></span><div class="bar"><span class="bg-blu" id="eAss"></span></div><span class="val num" id="vAss"></span></div>
+      <div class="erow"><span>Potenziale W<sub>p</sub></span><div class="bar"><span class="bg-verde" id="eP"></span></div><span class="val num" id="vP"></span></div>
+      <div class="erow"><span>Cinetica W<sub>c</sub></span><div class="bar"><span class="bg-arancio" id="eK"></span></div><span class="val num" id="vK"></span></div>
+      <div class="erow"><span>Calore W<sub>J</sub></span><div class="bar"><span class="bg-rosso" id="eJ"></span></div><span class="val num" id="vJ"></span></div>
+      <p class="hint" style="margin-top:10px" id="eNote"></p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>I calcoli, con i numeri di questo carico</h2>
+  <div class="calcgrid">
+    <div><h3 id="h3a">Alla partenza (t = 0)</h3><ul class="calc" id="calcA"></ul></div>
+    <div><h3>A regime (C<sub>m</sub> = C<sub>r</sub>)</h3><ul class="calc" id="calcB"></ul></div>
+  </div>
+</div>
+<footer>© 2026 Prof. Di Filippo Davide. Materiale didattico per le classi di STA. Codice GPLv3, contenuti CC BY-SA 4.0.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var V=12, Ra=1, k=0.004, r=0.01, g=9.81, H=2;
+  var kC=k*60/(2*Math.PI);           // costante di coppia, N·m/A
+  var I_AVV=V/Ra, C_AVV=kC*I_AVV;
+  var PX_PER_M=110, Y0=407, RP=30;
+
+  var $=function(id){return document.getElementById(id);};
+  function fmt(x,d){ if(Math.abs(x)<0.5*Math.pow(10,-d)) x=0; return x.toFixed(d).replace(".",","); }
+  function massFromI(I){return kC*I/(g*r);}
+
+  // ---- modello -------------------------------------------------------
+  function compute(m,fromRest){
+    var I=m*g*r/kC, blocked=false;
+    if(I>=I_AVV-0.02){I=I_AVV;blocked=true;}
+    var E=V-Ra*I, n=E/k, v=2*Math.PI*r*n/60;
+    var s={m:m,Ir:I,Er:E,nr:n,vr:v,Cr:m*g*r,P:m*g,blocked:blocked,fromRest:fromRest,
+           Pass:V*I,PJ:Ra*I*I,Pu:E*I,eta:E/V,
+           tau:m*r*r*Ra/(kC*kC), Tconst:blocked?Infinity:H/v};
+    // tempo per salire di H
+    if(blocked) s.T=2;
+    else if(!fromRest) s.T=s.Tconst;
+    else{
+      var lo=s.Tconst, hi=s.Tconst+2*s.tau;
+      for(var i=0;i<60;i++){var mid=(lo+hi)/2; if(height(s,mid)<H) lo=mid; else hi=mid;}
+      s.T=(lo+hi)/2;
+    }
+    return s;
+  }
+  function decay(s,t){return s.fromRest?Math.exp(-t/s.tau):0;}
+  function height(s,t){
+    if(s.blocked) return 0;
+    return s.fromRest ? s.vr*(t-s.tau*(1-Math.exp(-t/s.tau))) : s.vr*t;
+  }
+  function at(s,t){
+    var x=decay(s,t), dI=I_AVV-s.Ir;
+    var I=s.Ir+dI*x, n=s.nr*(1-x), E=k*n, v=s.vr*(1-x);
+    var F=kC*I/r, h=Math.min(H,height(s,t));
+    var o={I:I,n:n,E:E,v:v,F:F,Cm:kC*I,a:(F-s.P)/s.m,h:h,
+           Pass:V*I,PJ:Ra*I*I,Pu:E*I};
+    if(s.fromRest){
+      var q=s.tau*(1-x), q2=s.tau/2*(1-x*x);
+      o.Wass=V*(s.Ir*t+dI*q);
+      o.WJ=Ra*(s.Ir*s.Ir*t+2*s.Ir*dI*q+dI*dI*q2);
+      o.Wk=0.5*s.m*v*v;
+    }else{
+      o.Wass=s.Pass*t; o.WJ=s.PJ*t; o.Wk=0;
+    }
+    o.Wp=s.P*h;
+    return o;
+  }
+
+  var fromRest=true;
+  var s=compute(massFromI(2),fromRest);
+  var t=0, running=false, done=false, speed=0.1, last=0, dash=0;
+
+  // ---- righello ------------------------------------------------------
+  (function(){
+    var x=352, yb=Y0+44, html="";
+    html+='<line x1="'+x+'" y1="'+yb+'" x2="'+x+'" y2="'+(yb-H*PX_PER_M)+'" class="s-ink" stroke-width="1.5"/>';
+    for(var i=0;i<=8;i++){
+      var y=yb-i*0.25*PX_PER_M, big=(i%2===0);
+      html+='<line x1="'+x+'" y1="'+y+'" x2="'+(x+(big?12:7))+'" y2="'+y+'" class="s-ink" stroke-width="1.5"/>';
+      if(big) html+='<text class="t-m num" x="'+(x+17)+'" y="'+(y+4)+'">'+fmt(i*0.25,1)+' m</text>';
+    }
+    $("ruler").innerHTML=html;
+  })();
+
+  function setPressed(groupId,pred){
+    var bs=$(groupId).querySelectorAll("button");
+    for(var i=0;i<bs.length;i++) bs[i].setAttribute("aria-pressed",pred(bs[i])?"true":"false");
+  }
+
+  // ---- grafici -------------------------------------------------------
+  var CH={x0:[48,318], w:200, y0:150, h:120};
+  function chartX(p,tt){return CH.x0[p]+CH.w*tt/s.T;}
+  function chartY(val,max){return CH.y0-CH.h*val/max;}
+  function buildCharts(){
+    var defs=[
+      {title:"Velocità n [giri/min]", max:3200, cls:"st-arancio", f:function(o){return o.n;}, reg:s.nr, regLab:fmt(s.nr,0)},
+      {title:"Corrente I [A]", max:13, cls:"st-blu", f:function(o){return o.I;}, reg:s.Ir, regLab:fmt(s.Ir,1).replace(",0","")}
+    ], html="";
+    for(var p=0;p<2;p++){
+      var d=defs[p], x0=CH.x0[p], x1=x0+CH.w, pts=[];
+      for(var i=0;i<=120;i++){var tt=s.T*i/120; pts.push(chartX(p,tt).toFixed(1)+","+chartY(d.f(at(s,tt)),d.max).toFixed(1));}
+      var yr=chartY(d.reg,d.max);
+      html+='<text class="t" x="'+x0+'" y="14" style="font-weight:600">'+d.title+'</text>';
+      html+='<line class="s-line" stroke-dasharray="4 4" stroke-width="1.5" x1="'+x0+'" y1="'+yr.toFixed(1)+'" x2="'+x1+'" y2="'+yr.toFixed(1)+'"/>';
+      html+='<text class="t-m num" text-anchor="end" x="'+(x0-5)+'" y="'+(yr+4).toFixed(1)+'">'+d.regLab+'</text>';
+      if(p===1 && s.fromRest && !s.blocked) html+='<text class="t-m num" text-anchor="end" x="'+(x0-5)+'" y="'+(chartY(12,d.max)+4).toFixed(1)+'">12</text>';
+      if(s.fromRest && !s.blocked && 5*s.tau<s.T){
+        var x5=chartX(p,5*s.tau);
+        html+='<line class="st-muted" stroke-dasharray="2 4" stroke-width="1.2" x1="'+x5.toFixed(1)+'" y1="'+CH.y0+'" x2="'+x5.toFixed(1)+'" y2="'+(CH.y0-CH.h)+'"/>';
+        html+='<text class="t-m" text-anchor="middle" x="'+x5.toFixed(1)+'" y="'+(CH.y0+15)+'">5τ</text>';
+      }
+      html+='<path class="s-ink" stroke-width="1.5" d="M'+x0+','+(CH.y0-CH.h-6)+' V'+CH.y0+' H'+(x1+6)+'"/>';
+      html+='<polyline class="'+d.cls+'" fill="none" stroke-width="2.5" points="'+pts.join(" ")+'"/>';
+      html+='<text class="t-m num" x="'+x0+'" y="'+(CH.y0+15)+'">0</text>';
+      html+='<text class="t-m num" text-anchor="end" x="'+x1+'" y="'+(CH.y0+30)+'">'+fmt(s.T,2)+' s</text>';
+      html+='<circle id="cur'+p+'" r="5" class="'+(p===0?"f-arancio":"f-blu")+'"/>';
+    }
+    $("charts").innerHTML=html;
+    $("chartNote").textContent = s.blocked ? "Il motore non parte: la velocità resta zero e la corrente resta 12 A."
+      : s.fromRest ? "La linea tratteggiata orizzontale è il valore di regime. Dopo 5τ = "+fmt(5*s.tau,2)+" s il transitorio è praticamente estinto."
+      : "Partendo già a regime, velocità e corrente restano costanti per tutta la salita.";
+  }
+
+  // ---- parte fissa (dipende solo dal carico) ---------------------------
+  function renderStatic(){
+    $("massOut").textContent=fmt(s.m,2)+" kg";
+    var st=$("stato");
+    if(s.blocked){st.className="pill bad";st.textContent="Rotore bloccato";}
+    else if(Math.abs(s.Ir-2)<0.03){st.className="pill ok";st.textContent="Carico nominale";}
+    else if(s.Ir<2){st.className="pill ok";st.textContent="Sotto il nominale";}
+    else{st.className="pill warn";st.textContent="Sovraccarico";}
+    $("alert").hidden=!s.blocked;
+    setPressed("presets",function(b){return Math.abs(parseFloat(b.dataset.i)-s.Ir)<0.03;});
+    setPressed("modes",function(b){return (b.dataset.m==="fermo")===s.fromRest;});
+
+    $("rN").textContent="a regime "+fmt(s.nr,0);
+    $("rE").textContent="a regime "+fmt(s.Er,1);
+    $("rI").textContent="a regime "+fmt(s.Ir,2);
+    $("rV").textContent="a regime "+fmt(s.vr,2);
+    $("rF").textContent="peso "+fmt(s.P,2)+" N";
+    $("tTau").textContent=s.fromRest?fmt(s.tau,3):"—";
+    $("rTau").textContent=s.fromRest?("transitorio ≈ 5τ = "+fmt(5*s.tau,2)+" s"):"nessun transitorio";
+    $("tT").textContent=s.blocked?"—":fmt(s.T,2);
+    $("rT").textContent=s.blocked?"la massa non sale":("a velocità costante "+fmt(s.Tconst,2));
+    $("lEta").textContent=fmt(s.eta*100,0)+" %";
+    $("bCr").style.width=(s.Cr/C_AVV*100)+"%";
+    $("vCr").textContent=fmt(s.Cr,3)+" N·m";
+    $("sM").textContent=fmt(s.m,2)+" kg";
+    $("sP").textContent="P = "+fmt(s.P,2)+" N";
+    $("pArrow").setAttribute("y2",(26+10+30*s.P/(C_AVV/r)).toFixed(1));
+    $("giriTot").textContent=fmt(H/(2*Math.PI*r),1);
+    $("eNote").innerHTML=s.blocked
+      ? "La massa resta ferma: tutta l'energia assorbita diventa calore."
+      : s.fromRest ? "All'arrivo: W<sub>ass</sub> = W<sub>p</sub> + W<sub>c</sub> + W<sub>J</sub>. L'energia cinetica serve a mettere in movimento la massa."
+                   : "All'arrivo: W<sub>ass</sub> = W<sub>p</sub> + W<sub>J</sub> (la massa era già in movimento).";
+
+    // calcoli
+    var a0=(C_AVV/r-s.P)/s.m, A=[], B=[];
+    $("h3a").textContent=s.fromRest?"Alla partenza (t = 0)":"Alla partenza (se partisse da ferma)";
+    A.push("<b>Costante di coppia</b> &nbsp;k<sub>C</sub> = 9,55·k = 9,55 · 0,004 = <b>0,0382 N·m/A</b>");
+    A.push("<b>Corrente di avviamento</b> &nbsp;I<sub>avv</sub> = V/R<sub>a</sub> = 12/1 = <b>12 A</b>");
+    A.push("<b>Coppia di spunto</b> &nbsp;C<sub>avv</sub> = k<sub>C</sub>·I<sub>avv</sub> = 0,0382 · 12 = <b>0,458 N·m</b>");
+    A.push("<b>Coppia resistente</b> &nbsp;C<sub>r</sub> = m·g·r = "+fmt(s.m,2)+" · 9,81 · 0,01 = <b>"+fmt(s.Cr,3)+" N·m</b>");
+    if(s.blocked){
+      A.push("<b>Confronto</b> &nbsp;C<sub>avv</sub> = C<sub>r</sub>: nessuna coppia in più per accelerare, <b>il motore non parte</b>");
+    }else{
+      A.push("<b>Confronto</b> &nbsp;C<sub>avv</sub> è <b>"+fmt(C_AVV/s.Cr,1)+" volte</b> C<sub>r</sub>: il motore parte");
+      A.push("<b>Tiro della fune</b> &nbsp;F = C<sub>avv</sub>/r = 0,458/0,01 = <b>45,8 N</b>, contro un peso P = <b>"+fmt(s.P,2)+" N</b>");
+      A.push("<b>Accelerazione</b> &nbsp;a = (F − P)/m = (45,8 − "+fmt(s.P,2)+")/"+fmt(s.m,2)+" = <b>"+fmt(a0,1)+" m/s²</b>");
+      A.push("<b>Costante di tempo</b> &nbsp;τ = m·r²·R<sub>a</sub>/k<sub>C</sub>² = "+fmt(s.m,2)+" · 0,01² · 1/0,0382² = <b>"+fmt(s.tau,3)+" s</b>");
+      A.push("<b>Durata del transitorio</b> &nbsp;5τ = <b>"+fmt(5*s.tau,2)+" s</b>");
+    }
+    B.push("<b>Corrente</b> &nbsp;I = C<sub>r</sub>/k<sub>C</sub> = "+fmt(s.Cr,3)+"/0,0382 = <b>"+fmt(s.Ir,2)+" A</b>");
+    B.push("<b>F.c.e.m.</b> &nbsp;E = V − R<sub>a</sub>·I = 12 − 1 · "+fmt(s.Ir,2)+" = <b>"+fmt(s.Er,1)+" V</b>");
+    B.push("<b>Velocità</b> &nbsp;n = E/k = "+fmt(s.Er,1)+"/0,004 = <b>"+fmt(s.nr,0)+" giri/min</b>");
+    B.push("<b>Assorbita</b> &nbsp;P<sub>ass</sub> = V·I = 12 · "+fmt(s.Ir,2)+" = <b>"+fmt(s.Pass,1)+" W</b>");
+    B.push("<b>Joule</b> &nbsp;P<sub>J</sub> = R<sub>a</sub>·I² = 1 · "+fmt(s.Ir,2)+"² = <b>"+fmt(s.PJ,2)+" W</b>");
+    B.push("<b>Utile</b> &nbsp;P<sub>u</sub> = E·I = "+fmt(s.Er,1)+" · "+fmt(s.Ir,2)+" = <b>"+fmt(s.Pu,1)+" W</b>");
+    B.push("<b>Rendimento</b> &nbsp;η = P<sub>u</sub>/P<sub>ass</sub> = E/V = <b>"+fmt(s.eta*100,0)+" %</b>");
+    B.push("<b>Velocità di salita</b> &nbsp;v = 2πr·n/60 = 2π · 0,01 · "+fmt(s.nr,0)+"/60 = <b>"+fmt(s.vr,2)+" m/s</b>");
+    if(!s.blocked) B.push("<b>Tempo per 2 m</b> &nbsp;a velocità costante 2/"+fmt(s.vr,2)+" = <b>"+fmt(s.Tconst,2)+" s</b>"+(s.fromRest?"; partendo da ferma <b>"+fmt(s.T,2)+" s</b>":""));
+    $("calcA").innerHTML="<li>"+A.join("</li><li>")+"</li>";
+    $("calcB").innerHTML="<li>"+B.join("</li><li>")+"</li>";
+
+    buildCharts();
+  }
+
+  // ---- parte che cambia nel tempo -------------------------------------
+  function renderDynamic(){
+    var o=at(s,t), y=Y0-o.h*PX_PER_M;
+    $("mass").setAttribute("transform","translate(0,"+y.toFixed(2)+")");
+    $("rope").setAttribute("y2",y.toFixed(2));
+    $("spokes").setAttribute("transform","rotate("+(-(o.h*PX_PER_M/RP)*180/Math.PI).toFixed(2)+" 250 100)");
+    $("sT").textContent=fmt(t,2)+" s";
+    $("sH").textContent=fmt(o.h,2)+" m";
+    $("giriNow").textContent=fmt(o.h/(2*Math.PI*r),1);
+
+    $("sI").textContent="I = "+fmt(o.I,2)+" A";
+    $("sPass").textContent="P_ass = "+fmt(o.Pass,1)+" W";
+    $("sPJ").textContent="P_J = "+fmt(o.PJ,o.PJ<10?2:1)+" W";
+    $("sN").textContent=fmt(o.n,0)+" giri/min";
+    $("sE").textContent="E = "+fmt(o.E,1)+" V";
+    $("sF").textContent="F = "+fmt(o.F,o.F<10?2:1)+" N";
+    $("sV").textContent="v = "+fmt(o.v,2)+" m/s";
+    $("vArrow").style.display=o.v<0.005?"none":"";
+    $("fArrow").setAttribute("y2",(20-10-30*o.F/(C_AVV/r)).toFixed(1));
+    $("heat").setAttribute("opacity",(0.04+0.8*Math.pow(o.PJ/144,0.55)).toFixed(3));
+
+    $("tN").textContent=fmt(o.n,0); $("tE").textContent=fmt(o.E,1); $("tI").textContent=fmt(o.I,2);
+    $("tF").textContent=fmt(o.F,o.F<10?2:1); $("tV").textContent=fmt(o.v,2); $("tA").textContent=fmt(o.a,1);
+
+    $("bCm").style.width=(o.Cm/C_AVV*100)+"%";
+    $("vCm").textContent=fmt(o.Cm,3)+" N·m";
+    var fase=$("fase"), ver=$("verdict");
+    if(s.blocked){
+      fase.className="pill bad"; fase.textContent="Stallo";
+      ver.innerHTML="C<sub>m</sub> = C<sub>r</sub> già da fermo: il motore non parte.";
+    }else if(!s.fromRest || t>=5*s.tau){
+      fase.className="pill ok"; fase.textContent="Regime";
+      ver.innerHTML="C<sub>m</sub> = C<sub>r</sub>: equilibrio, la velocità resta costante.";
+    }else{
+      fase.className="pill info"; fase.textContent=t===0?"Spunto (t = 0)":"Transitorio";
+      ver.innerHTML="C<sub>m</sub> è "+fmt(o.Cm/s.Cr,1)+" volte C<sub>r</sub>: il motore accelera.";
+    }
+
+    $("bPu").style.width=(o.Pu/144*100)+"%"; $("bPJ").style.width=(o.PJ/144*100)+"%";
+    $("lPass").textContent=fmt(o.Pass,1)+" W"; $("lPu").textContent=fmt(o.Pu,1)+" W"; $("lPJ").textContent=fmt(o.PJ,o.PJ<10?2:1)+" W";
+
+    var max=at(s,s.T).Wass;
+    $("eAss").style.width=(o.Wass/max*100)+"%";
+    $("eP").style.width=(o.Wp/max*100)+"%";
+    $("eK").style.width=(o.Wk/max*100)+"%";
+    $("eJ").style.width=(o.WJ/max*100)+"%";
+    $("vAss").textContent=fmt(o.Wass,1)+" J";
+    $("vP").textContent=fmt(o.Wp,1)+" J";
+    $("vK").textContent=fmt(o.Wk,1)+" J";
+    $("vJ").textContent=fmt(o.WJ,1)+" J";
+
+    $("flowTop").setAttribute("stroke-dashoffset",(-dash).toFixed(1));
+    $("flowBot").setAttribute("stroke-dashoffset",(-dash).toFixed(1));
+    var c0=$("cur0"), c1=$("cur1");
+    if(c0){c0.setAttribute("cx",chartX(0,t).toFixed(1)); c0.setAttribute("cy",chartY(o.n,3200).toFixed(1));}
+    if(c1){c1.setAttribute("cx",chartX(1,t).toFixed(1)); c1.setAttribute("cy",chartY(o.I,13).toFixed(1));}
+  }
+
+  function setPlayLabel(){ $("play").textContent=running?"❚❚ Pausa":(done?"↻ Rifai":(t>0?"▶ Riprendi":"▶ Avvia")); }
+  function resetRun(){t=0;running=false;done=false;setPlayLabel();renderDynamic();}
+  function reload(m){ s=compute(m,fromRest); renderStatic(); resetRun(); }
+
+  function frame(now){
+    if(!running) return;
+    var dt=Math.min(0.05,(now-last)/1000); last=now;
+    t+=dt*speed;
+    dash+=dt*(10+22*at(s,t).I);
+    if(t>=s.T){t=s.T;running=false;done=true;setPlayLabel();}
+    renderDynamic();
+    if(running) requestAnimationFrame(frame);
+  }
+
+  $("play").addEventListener("click",function(){
+    if(running){running=false;}
+    else{
+      if(done){t=0;done=false;}
+      running=true; last=performance.now(); requestAnimationFrame(frame);
+    }
+    setPlayLabel();
+  });
+  $("reset").addEventListener("click",resetRun);
+  $("massa").addEventListener("input",function(){ reload(parseFloat(this.value)); });
+  $("presets").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    var m=massFromI(parseFloat(b.dataset.i));
+    $("massa").value=Math.min(4.67,m).toFixed(2);
+    reload(m);
+  });
+  $("modes").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    fromRest=(b.dataset.m==="fermo");
+    reload(s.m);
+  });
+  $("speeds").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    speed=parseFloat(b.dataset.s);
+    setPressed("speeds",function(x){return x===b;});
+  });
+
+  renderStatic(); renderDynamic();
+})();
+</script>
+</body>
+</html>

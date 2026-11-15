@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<!-- Materiale didattico di Prof. Di Filippo Davide (STA). Autore: Prof. Di Filippo Davide.
+     Codice: GNU GPL v3 o successiva (SPDX: GPL-3.0-or-later), vedi LICENSE.
+     Contenuti didattici: CC BY-SA 4.0, vedi LICENSE-CONTENUTI.
+     Termine aggiuntivo (GPLv3, sez. 7b): le versioni modificate devono mantenere visibile
+     nella pagina la dicitura "Autore originale: Prof. Di Filippo Davide". -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Prof. Di Filippo Davide">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avviamento del motore c.c.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: scheda da compilare a sinistra (campi numerati 1-8), curve a destra, regime e domande sotto.
+   Colori come nella dispensa: blu = assorbita/corrente, verde = utile, rosso = Joule, arancio = velocità. */
+:root{
+  --bg:#f2f4f8; --surface:#ffffff; --ink:#17212e; --muted:#5a6676; --line:#d3dae3;
+  --blu:#1e5aa0; --verde:#1e8246; --rosso:#be2828; --arancio:#d97412; --viola:#7a3fa0;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#10151c; --surface:#19212b; --ink:#e8edf3; --muted:#9ba8b7; --line:#2d3846;
+    --blu:#6ea9ea; --verde:#56c487; --rosso:#f27474; --arancio:#f3a24d; --viola:#c79be6;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#10151c; --surface:#19212b; --ink:#e8edf3; --muted:#9ba8b7; --line:#2d3846;
+  --blu:#6ea9ea; --verde:#56c487; --rosso:#f27474; --arancio:#f3a24d; --viola:#c79be6;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:16px}
+.byline{font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--blu);margin-bottom:2px}
+footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);padding-top:10px}
+header h1{margin:0;font-size:1.55rem;font-weight:700;text-wrap:balance}
+header p{margin:4px 0 0;color:var(--muted);max-width:75ch}
+.grid{display:grid;grid-template-columns:minmax(0,0.82fr) minmax(0,1.18fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h2{margin:0 0 12px;font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.hint{color:var(--muted);font-size:.88rem;margin:0}
+
+/* campi */
+.fields{display:flex;flex-direction:column;gap:12px}
+.field{display:grid;grid-template-columns:1.9em minmax(0,1fr) auto;gap:2px 8px;align-items:center}
+.badge{width:1.7em;height:1.7em;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);font-size:.8rem;font-weight:600;display:flex;align-items:center;justify-content:center}
+.field label,.field .lbl{font-weight:600}
+.field .io{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.field .unit{color:var(--muted);font-size:.9rem;min-width:4.6em}
+.field .msg{grid-column:2 / -1;font-size:.84rem;color:var(--muted);min-height:1.2em}
+input[type=text]{font:inherit;font-family:var(--font-num);font-weight:600;width:6.2em;padding:7px 9px;text-align:right;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:7px}
+input[type=text]::placeholder{color:var(--muted);font-weight:400;opacity:.7}
+input:focus-visible,button:focus-visible{outline:3px solid var(--blu);outline-offset:2px}
+.field.bad input{border-color:var(--rosso)} .field.bad .msg{color:var(--rosso);font-weight:600}
+.field.good input{border-color:var(--verde)} .field.good .msg{color:var(--verde);font-weight:600}
+.field.good .badge{border-color:var(--verde);color:var(--verde)}
+.field.bad .badge{border-color:var(--rosso);color:var(--rosso)}
+output.auto{font-family:var(--font-num);font-weight:600;width:6.2em;padding:7px 9px;text-align:right;border:1.5px dashed var(--line);border-radius:7px;display:inline-block;color:var(--ink)}
+output.auto.nd{color:var(--muted)}
+.tag{font-size:.72rem;font-weight:600;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-left:6px;white-space:nowrap}
+
+button{font:inherit;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--blu);border-color:var(--blu);color:var(--surface);min-width:8.5em;font-size:1.05rem}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.status{border-radius:8px;padding:10px 12px;font-weight:600;border:1.5px solid var(--line);color:var(--muted)}
+.status.bad{border-color:var(--rosso);color:var(--rosso)}
+.status.ok{border-color:var(--verde);color:var(--verde)}
+.status ul{margin:4px 0 0;padding-left:1.2em;font-weight:500}
+
+/* curve */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.tile .k{font-size:.76rem;color:var(--muted)}
+.tile .v{font-size:1.05rem;font-weight:600;white-space:nowrap}
+.tile .u{font-size:.74rem;color:var(--muted);font-family:var(--font-body);font-weight:400}
+.panels3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.panels2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:10px}
+@media (max-width:620px){.panels3,.panels2{grid-template-columns:1fr}}
+.panel h3{margin:0 0 2px;font-size:.92rem;font-weight:600}
+svg{display:block;width:100%;height:auto}
+.s-ink{stroke:var(--ink);fill:none} .s-line{stroke:var(--line);fill:none}
+.t-m{fill:var(--muted);font-family:var(--font-num);font-size:14px}
+.sc-t{fill:var(--ink);font-family:var(--font-num);font-size:15px;font-weight:600}
+.sc-m{fill:var(--muted);font-family:var(--font-body);font-size:13px}
+.st-muted{stroke:var(--muted)}
+.st-blu{stroke:var(--blu)} .st-verde{stroke:var(--verde)} .st-rosso{stroke:var(--rosso)} .st-arancio{stroke:var(--arancio)} .st-viola{stroke:var(--viola)}
+.f-blu{fill:var(--blu)} .f-verde{fill:var(--verde)} .f-rosso{fill:var(--rosso)} .f-arancio{fill:var(--arancio)} .f-viola{fill:var(--viola)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.86rem;margin-top:2px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.bg-blu{background:var(--blu)} .bg-verde{background:var(--verde)} .bg-rosso{background:var(--rosso)}
+.locked{position:relative}
+.lock{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;font-weight:600;color:var(--muted);background:color-mix(in srgb,var(--surface) 82%,transparent);border-radius:8px}
+.lock[hidden]{display:none}
+
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:6px 10px;border-bottom:1px solid var(--line)}
+td.num{text-align:right;font-weight:600;white-space:nowrap}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-width:70ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="byline">Prof. Di Filippo Davide · STA</div>
+  <h1>Esercizio: l'avviamento del motore in c.c.</h1>
+  <p>Inserisci i dati di targa del tuo motoriduttore, calcola a mano la corrente a rotore fermo e la potenza dissipata all'avvio, poi premi AVVIO: se i tuoi calcoli sono giusti la simulazione parte e disegna le curve.</p>
+</header>
+
+<div class="grid">
+  <!-- SCHEDA -->
+  <div class="col">
+    <div class="card">
+      <h2>Dati di targa</h2>
+      <div class="fields">
+        <div class="field" id="rowV">
+          <span class="badge">1</span><label for="fV">Tensione di alimentazione V</label>
+          <span class="io"><input type="text" inputmode="decimal" id="fV" autocomplete="off" placeholder="—"><span class="unit">V</span></span>
+          <span class="msg" id="mV">massimo 12 V</span>
+        </div>
+        <div class="field" id="rowN0">
+          <span class="badge">2</span><label for="fN0">Velocità a vuoto del motore n<sub>0</sub></label>
+          <span class="io"><input type="text" inputmode="decimal" id="fN0" autocomplete="off" placeholder="—"><span class="unit">giri/min</span></span>
+          <span class="msg" id="mN0">giri al minuto dell'albero del motore, prima del riduttore</span>
+        </div>
+        <div class="field">
+          <span class="badge">3</span><span class="lbl">Costante del motore k<span class="tag">calcolato</span></span>
+          <span class="io"><output class="auto nd" id="oK" for="fV fN0">ND</output><span class="unit">V/(giri/min)</span></span>
+          <span class="msg">k = V / n<sub>0</sub></span>
+        </div>
+        <div class="field" id="rowRa">
+          <span class="badge">4</span><label for="fRa">Resistenza di armatura R<sub>a</sub></label>
+          <span class="io"><input type="text" inputmode="decimal" id="fRa" autocomplete="off" placeholder="—"><span class="unit">Ω</span></span>
+          <span class="msg" id="mRa">massimo 10 Ω</span>
+        </div>
+        <div class="field" id="rowN">
+          <span class="badge">5</span><label for="fN">Rapporto di riduzione 1 : N</label>
+          <span class="io"><span class="num">1 :</span><input type="text" inputmode="decimal" id="fN" autocomplete="off" placeholder="—" style="width:4.4em"><span class="unit"></span></span>
+          <span class="msg" id="mN">N da 1 (nessun riduttore) a 20</span>
+        </div>
+        <div class="field">
+          <span class="badge">6</span><span class="lbl">Velocità a vuoto dell'albero di uscita<span class="tag">calcolato</span></span>
+          <span class="io"><output class="auto nd" id="oNout" for="fN0 fN">ND</output><span class="unit">giri/min</span></span>
+          <span class="msg">n<sub>uscita</sub> = n<sub>0</sub> / N</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>I tuoi calcoli</h2>
+      <div class="fields">
+        <div class="field" id="rowI">
+          <span class="badge">7</span><label for="aI">Corrente a rotore fermo I<sub>avv</sub></label>
+          <span class="io"><input type="text" inputmode="decimal" id="aI" autocomplete="off" placeholder="—"><span class="unit">A</span></span>
+          <span class="msg" id="mI">calcolala tu e scrivi il risultato</span>
+        </div>
+        <div class="field" id="rowP">
+          <span class="badge">8</span><label for="aP">Potenza dissipata all'avvio su R<sub>a</sub></label>
+          <span class="io"><input type="text" inputmode="decimal" id="aP" autocomplete="off" placeholder="—"><span class="unit">W</span></span>
+          <span class="msg" id="mP">calcolala tu e scrivi il risultato</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Carico (facoltativo)</h2>
+      <div class="fields">
+        <div class="field" id="rowM">
+          <span class="badge">+</span><label for="fM">Massa appesa alla puleggia di uscita (r = 1 cm)</label>
+          <span class="io"><input type="text" inputmode="decimal" id="fM" autocomplete="off" placeholder="—"><span class="unit">kg</span></span>
+          <span class="msg" id="mM">lascia vuoto per il funzionamento a vuoto</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button type="button" class="primary" id="go">▶ AVVIO</button>
+        <button type="button" id="clear">Svuota tutto</button>
+      </div>
+      <div class="status" id="status" role="status" style="margin-top:12px">Compila i campi da 1 a 8 per sbloccare la simulazione.</div>
+    </div>
+  </div>
+
+  <!-- CURVE -->
+  <div class="col">
+    <div class="card">
+      <h2>Il motore</h2>
+      <svg id="scene" viewBox="0 0 640 268" role="img" aria-label="Alimentatore, motore che gira, riduttore e albero di uscita">
+        <!-- alimentatore -->
+        <path class="s-ink" stroke-width="2" d="M40,118 V60 H200 V66 M40,142 V200 H200 V194"/>
+        <path class="s-ink" stroke-width="2" d="M22,118 H58"/>
+        <path class="s-ink" stroke-width="5" d="M31,142 H49"/>
+        <text class="sc-m" x="14" y="110">+</text>
+        <text class="sc-t" x="64" y="136" id="scV">? V</text>
+        <path id="flowTop" class="st-blu" fill="none" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="2 14" d="M40,116 V60 H200 V66" opacity="0"/>
+        <path id="flowBot" class="st-blu" fill="none" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="2 14" d="M200,194 V200 H40 V146" opacity="0"/>
+        <text class="sc-t f-blu" x="64" y="48" id="scI">I = —</text>
+        <text class="sc-t f-rosso" x="14" y="234" id="scPj">P_J = —</text>
+        <text class="sc-m" x="14" y="252">calore su Rₐ</text>
+        <!-- motore -->
+        <circle id="glow" cx="230" cy="130" r="88" class="f-rosso" opacity="0"/>
+        <circle cx="230" cy="130" r="72" fill="var(--surface)" class="s-ink" stroke-width="2.5"/>
+        <circle id="heat" cx="230" cy="130" r="70.5" class="f-rosso" opacity="0"/>
+        <g id="rotor">
+          <circle cx="230" cy="130" r="52" fill="var(--surface)" class="s-ink" stroke-width="2"/>
+          <path class="s-ink" stroke-width="2" d="M230,78 V182 M185,104 L275,156 M185,156 L275,104"/>
+          <path class="st-arancio" fill="none" stroke-width="7" stroke-linecap="round" d="M230,84 V100"/>
+          <path class="st-blu" fill="none" stroke-width="7" stroke-linecap="round" d="M230,160 V176"/>
+          <circle cx="230" cy="130" r="14" fill="var(--surface)" class="s-ink" stroke-width="2"/>
+        </g>
+        <!-- cinghia e albero di uscita -->
+        <path id="belt" class="st-muted" fill="none" stroke-width="3" stroke-dasharray="9 6" d="M227.3,116.3 L439.3,75 M439.3,185 L227.3,143.7"/>
+        <circle cx="450" cy="130" r="56" fill="var(--surface)" class="s-ink" stroke-width="2.5"/>
+        <g id="outw">
+          <path class="s-ink" stroke-width="2" d="M450,76 V184 M396,130 H504"/>
+          <circle cx="450" cy="92" r="6" class="f-verde"/>
+          <circle cx="450" cy="130" r="8" fill="var(--ink)"/>
+        </g>
+        <circle cx="230" cy="130" r="5" fill="var(--ink)"/>
+        <text class="sc-m" x="340" y="30" text-anchor="middle" id="scRatio">riduttore 1 : ?</text>
+        <text class="sc-m" x="450" y="42" text-anchor="middle">albero di uscita</text>
+        <text class="sc-t f-verde" x="450" y="62" text-anchor="middle" id="scNout">— giri/min</text>
+        <text class="sc-t f-arancio" x="230" y="238" text-anchor="middle" id="scN">— giri/min</text>
+        <text class="sc-t" x="230" y="258" text-anchor="middle" id="scE">E = —</text>
+        <text class="sc-t f-rosso" x="340" y="238" text-anchor="middle" id="scStall" style="display:none">ROTORE BLOCCATO</text>
+        <!-- massa (solo se c'è un carico) -->
+        <g id="scMass" style="display:none">
+          <line id="scRope" x1="506" y1="130" x2="506" y2="212" class="st-arancio" stroke-width="3.5" stroke-dasharray="8 5"/>
+          <rect x="482" y="212" width="48" height="34" rx="4" class="f-arancio" opacity="0.28"/>
+          <rect x="482" y="212" width="48" height="34" rx="4" fill="none" class="st-arancio" stroke-width="2"/>
+          <text class="sc-t" x="506" y="234" text-anchor="middle" id="scM" style="font-size:12px">kg</text>
+          <text class="sc-t f-arancio" x="540" y="226" id="scVup">↑ —</text>
+          <text class="sc-m" x="540" y="244">m/s</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="card locked">
+      <h2>Valori in questo istante</h2>
+      <div class="tiles">
+        <div class="tile"><div class="k">Tempo</div><div class="v num"><span id="tT">—</span> <span class="u">τ</span></div></div>
+        <div class="tile"><div class="k">Velocità n</div><div class="v num"><span id="tN">—</span> <span class="u">giri/min</span></div></div>
+        <div class="tile"><div class="k">F.c.e.m. E</div><div class="v num"><span id="tE">—</span> <span class="u">V</span></div></div>
+        <div class="tile"><div class="k">Corrente I</div><div class="v num"><span id="tI">—</span> <span class="u">A</span></div></div>
+        <div class="tile"><div class="k">P assorbita</div><div class="v num"><span id="tPa">—</span> <span class="u">W</span></div></div>
+        <div class="tile"><div class="k">P dissipata</div><div class="v num"><span id="tPj">—</span> <span class="u">W</span></div></div>
+        <div class="tile"><div class="k">P utile</div><div class="v num"><span id="tPu">—</span> <span class="u">W</span></div></div>
+        <div class="tile"><div class="k">Rendimento η</div><div class="v num"><span id="tEta">—</span> <span class="u">%</span></div></div>
+      </div>
+    </div>
+
+    <div class="card locked">
+      <h2>Velocità, f.c.e.m. e corrente</h2>
+      <div class="panels3">
+        <div class="panel"><h3>Velocità n [giri/min]</h3><svg id="pN" viewBox="0 0 300 190"></svg></div>
+        <div class="panel"><h3>F.c.e.m. E [V]</h3><svg id="pE" viewBox="0 0 300 190"></svg></div>
+        <div class="panel"><h3>Corrente I [A]</h3><svg id="pI" viewBox="0 0 300 190"></svg></div>
+      </div>
+      <div class="lock" id="lock1">Le curve compaiono quando la simulazione parte.</div>
+    </div>
+
+    <div class="card locked">
+      <h2>Potenze e rendimento</h2>
+      <div class="panels2">
+        <div class="panel"><h3>Potenze [W]</h3><svg id="pP" viewBox="0 0 460 190"></svg>
+          <div class="legend"><span><i class="bg-blu"></i>assorbita P<sub>ass</sub> = V·I</span><span><i class="bg-rosso"></i>dissipata P<sub>J</sub> = R<sub>a</sub>·I²</span><span><i class="bg-verde"></i>utile P<sub>u</sub> = E·I</span></div>
+        </div>
+        <div class="panel"><h3>Rendimento η [%]</h3><svg id="pEta" viewBox="0 0 300 190"></svg></div>
+      </div>
+      <div class="lock" id="lock2">Le curve compaiono quando la simulazione parte.</div>
+    </div>
+    <p class="hint" id="note">Sullo schermo il motore gira al rallentatore, in proporzione alla velocità vera. L'asse dei tempi è in costanti di tempo τ: dopo 5τ il transitorio è praticamente estinto. La durata in secondi dipende dalle masse da mettere in movimento.</p>
+  </div>
+</div>
+
+<div class="two">
+  <div class="card">
+    <h2>A regime</h2>
+    <div id="regime"><p class="hint">I valori di regime compaiono alla fine della simulazione.</p></div>
+  </div>
+  <div class="card">
+    <h2>Domande per il quaderno</h2>
+    <ol class="q">
+      <li>Perché la corrente è massima all'avvio e poi diminuisce?</li>
+      <li>In quale istante la potenza dissipata è massima? Confrontala con il valore che hai calcolato al punto 8.</li>
+      <li>Leggi il rendimento a regime e confrontalo con il rapporto E/V.</li>
+      <li>Raddoppia R<sub>a</sub> e rifai i calcoli: come cambiano la corrente di avvio e la potenza dissipata all'avvio?</li>
+      <li>Osserva la curva della potenza utile: quando è massima? Quanto vale la f.c.e.m. in quel momento rispetto a V?</li>
+    </ol>
+  </div>
+</div>
+<footer>© 2026 Prof. Di Filippo Davide. Materiale didattico per le classi di STA. Codice GPLv3, contenuti CC BY-SA 4.0.</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var G=9.81, RP=0.01, TMAX=6, NS=300, DURATION=9;   // 6τ disegnati in 9 s
+  var $=function(id){return document.getElementById(id);};
+
+  function parse(str){
+    var s=String(str).trim().replace(",",".");
+    if(s==="") return null;
+    if(!/^(\d+\.?\d*|\.\d+)$/.test(s)) return NaN;
+    return parseFloat(s);
+  }
+  function fmt(x,d){ if(Math.abs(x)<0.5*Math.pow(10,-d)) x=0; return x.toFixed(d).replace(".",","); }
+  function auto(x){ var a=Math.abs(x); return fmt(x, a>=100?0 : a>=10?1 : 2).replace(/,0+$/,""); }
+  function sig(x,n){ return String(Number(x.toPrecision(n))).replace(".",","); }
+
+  var DATA={
+    V:  {inp:"fV",  row:"rowV",  msg:"mV",  base:"massimo 12 V",                    ok:function(x){return x>0&&x<=12;},     err:"Inserisci un valore maggiore di 0 e non oltre 12 V."},
+    n0: {inp:"fN0", row:"rowN0", msg:"mN0", base:"giri al minuto dell'albero del motore, prima del riduttore", ok:function(x){return x>0&&x<=30000;}, err:"Inserisci un numero di giri maggiore di 0 (al massimo 30000)."},
+    Ra: {inp:"fRa", row:"rowRa", msg:"mRa", base:"massimo 10 Ω",                    ok:function(x){return x>0&&x<=10;},     err:"Inserisci un valore maggiore di 0 e non oltre 10 Ω."},
+    N:  {inp:"fN",  row:"rowN",  msg:"mN",  base:"N da 1 (nessun riduttore) a 20",  ok:function(x){return x>=1&&x<=20;},    err:"N deve essere compreso tra 1 e 20."}
+  };
+  var touched={};
+  var run=null;      // stato della simulazione in corso
+
+  function read(key){
+    var d=DATA[key], x=parse($(d.inp).value);
+    if(x===null) return {state:"empty"};
+    if(isNaN(x)||!d.ok(x)) return {state:"bad"};
+    return {state:"ok",v:x};
+  }
+  function setRow(rowId,msgId,cls,text){
+    var r=$(rowId); r.classList.remove("good","bad"); if(cls) r.classList.add(cls);
+    $(msgId).textContent=text;
+  }
+  function close(x,ref){ return Math.abs(x-ref)<=Math.max(0.015*ref,0.006); }
+
+  // Controlla tutto, aggiorna i campi automatici e restituisce l'elenco di ciò che manca.
+  function check(showAll){
+    var v={}, problems=[], key;
+    for(key in DATA){
+      var d=DATA[key], res=read(key); v[key]=res;
+      var show=showAll||touched[d.inp];
+      if(res.state==="ok") setRow(d.row,d.msg,"",d.base);
+      else if(res.state==="bad" && show) setRow(d.row,d.msg,"bad",d.err);
+      else if(res.state==="empty" && showAll) setRow(d.row,d.msg,"bad","Campo vuoto.");
+      else setRow(d.row,d.msg,"",d.base);
+    }
+    if(v.V.state!=="ok")  problems.push("la tensione di alimentazione (campo 1)");
+    if(v.n0.state!=="ok") problems.push("la velocità a vuoto del motore (campo 2)");
+    if(v.Ra.state!=="ok") problems.push("la resistenza di armatura (campo 4)");
+    if(v.N.state!=="ok")  problems.push("il rapporto di riduzione (campo 5)");
+
+    // campi calcolati
+    var oK=$("oK"), oN=$("oNout");
+    if(v.V.state==="ok"&&v.n0.state==="ok"){oK.textContent=sig(v.V.v/v.n0.v,3);oK.classList.remove("nd");}
+    else{oK.textContent="ND";oK.classList.add("nd");}
+    if(v.n0.state==="ok"&&v.N.state==="ok"){oN.textContent=auto(v.n0.v/v.N.v);oN.classList.remove("nd");}
+    else{oN.textContent="ND";oN.classList.add("nd");}
+
+    // risposte dello studente
+    var canCheck=(v.V.state==="ok"&&v.Ra.state==="ok");
+    var Iavv=canCheck?v.V.v/v.Ra.v:NaN, Pavv=canCheck?v.V.v*v.V.v/v.Ra.v:NaN;
+    function answer(inp,row,msg,ref,wrongText,name){
+      var x=parse($(inp).value), show=showAll||touched[inp];
+      if(x===null){
+        setRow(row,msg,showAll?"bad":"",showAll?"Manca il tuo risultato.":"calcolala tu e scrivi il risultato");
+        problems.push(name); return false;
+      }
+      if(!canCheck){ setRow(row,msg,"","Prima inserisci V e Rₐ (campi 1 e 4)."); problems.push(name); return false; }
+      if(!isNaN(x)&&close(x,ref)){ setRow(row,msg,"good","✓ Corretto"); return true; }
+      if(show) setRow(row,msg,"bad",wrongText); else setRow(row,msg,"","");
+      problems.push(name); return false;
+    }
+    answer("aI","rowI","mI",Iavv,"✗ Non è corretto. A rotore fermo la f.c.e.m. è zero: la corrente è limitata solo da Rₐ.","la corrente a rotore fermo corretta (campo 7)");
+    answer("aP","rowP","mP",Pavv,"✗ Non è corretto. All'avvio tutta la potenza assorbita si dissipa su Rₐ: usa la corrente del campo 7.","la potenza dissipata all'avvio corretta (campo 8)");
+
+    // carico facoltativo
+    var m=parse($("fM").value), mass=0;
+    if(m===null) setRow("rowM","mM","","lascia vuoto per il funzionamento a vuoto");
+    else if(isNaN(m)||m<=0||m>100){ setRow("rowM","mM","bad","Inserisci una massa maggiore di 0 (oppure lascia vuoto)."); problems.push("una massa valida, oppure il campo vuoto"); }
+    else{ mass=m; setRow("rowM","mM","","il motore solleva la massa attraverso il riduttore"); }
+
+    var out={v:v,problems:problems,mass:mass};
+    sceneStatic(out);
+    return out;
+  }
+
+  function model(c){
+    var V=c.v.V.v, n0=c.v.n0.v, Ra=c.v.Ra.v, N=c.v.N.v;
+    var k=V/n0, kC=k*60/(2*Math.PI), Iavv=V/Ra;
+    var Ir=c.mass>0 ? c.mass*G*RP/(N*kC) : 0, stall=false;
+    if(Ir>=Iavv){Ir=Iavv;stall=true;}
+    var nr=(V-Ra*Ir)/k;
+    var M={V:V,n0:n0,Ra:Ra,N:N,k:k,Iavv:Iavv,Pavv:V*Iavv,Ir:Ir,nr:nr,stall:stall,mass:c.mass};
+    M.at=function(t){
+      var x=Math.exp(-t), I=Ir+(Iavv-Ir)*x, n=nr*(1-x), E=k*n;
+      return {n:n,E:E,I:I,Pa:V*I,Pj:Ra*I*I,Pu:E*I,eta:100*E/V};
+    };
+    return M;
+  }
+
+  // ---- grafici ---------------------------------------------------------
+  var PANELS=[];
+  function buildPanel(id,W,ymax,ticks,series){
+    var x0=62,x1=W-12,yT=12,yB=148,h="",used=[];
+    function X(t){return x0+(x1-x0)*t/TMAX;}
+    function Y(val){return yB-(yB-yT)*val/ymax;}
+    ticks.forEach(function(tk){
+      var y=Y(tk.v);
+      for(var i=0;i<used.length;i++) if(Math.abs(used[i]-y)<16) return;
+      used.push(y);
+      if(tk.v>0) h+='<line class="s-line" stroke-dasharray="4 4" stroke-width="1.2" x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+x1+'" y2="'+y.toFixed(1)+'"/>';
+      h+='<text class="t-m" text-anchor="end" x="'+(x0-5)+'" y="'+(y+4).toFixed(1)+'">'+tk.label+'</text>';
+    });
+    for(var j=1;j<=5;j++){
+      var xx=X(j);
+      h+='<line class="s-ink" stroke-width="1.2" x1="'+xx.toFixed(1)+'" y1="'+yB+'" x2="'+xx.toFixed(1)+'" y2="'+(yB+4)+'"/>';
+      h+='<text class="t-m" text-anchor="middle" x="'+xx.toFixed(1)+'" y="'+(yB+19)+'">'+(j===1?"τ":j+"τ")+'</text>';
+    }
+    h+='<text class="t-m" text-anchor="end" x="'+x1+'" y="'+(yB+38)+'">tempo</text>';
+    h+='<path class="s-ink" stroke-width="1.5" d="M'+x0+','+(yT-6)+' V'+yB+' H'+(x1+6)+'"/>';
+    var P={series:[]};
+    series.forEach(function(s,i){
+      var pts=[];
+      for(var q=0;q<=NS;q++){var t=TMAX*q/NS; pts.push(X(t).toFixed(1)+","+Y(s.f(t)).toFixed(1));}
+      h+='<polyline id="'+id+'_l'+i+'" class="st-'+s.c+'" fill="none" stroke-width="2.5" stroke-linejoin="round" points=""/>';
+      h+='<circle id="'+id+'_d'+i+'" r="4.5" class="f-'+s.c+'" cx="-20" cy="-20"/>';
+      P.series.push({pts:pts,line:id+"_l"+i,dot:id+"_d"+i});
+    });
+    $(id).innerHTML=h;
+    PANELS.push(P);
+  }
+  function drawTo(idx){
+    PANELS.forEach(function(P){
+      P.series.forEach(function(s){
+        $(s.line).setAttribute("points",s.pts.slice(0,idx+1).join(" "));
+        var xy=s.pts[idx].split(",");
+        $(s.dot).setAttribute("cx",xy[0]); $(s.dot).setAttribute("cy",xy[1]);
+      });
+    });
+  }
+  function emptyPanels(){
+    PANELS=[];
+    [["pN",300],["pE",300],["pI",300],["pP",460],["pEta",300]].forEach(function(p){ buildPanel(p[0],p[1],1,[{v:0,label:"0"}],[]); });
+  }
+
+  function setupCharts(M){
+    PANELS=[];
+    var f=function(key){return function(t){return M.at(t)[key];};};
+    buildPanel("pN",300,M.n0*1.12,[{v:M.n0,label:auto(M.n0)},{v:M.nr,label:auto(M.nr)},{v:0,label:"0"}],[{f:f("n"),c:"arancio"}]);
+    buildPanel("pE",300,M.V*1.12,[{v:M.V,label:auto(M.V)},{v:M.k*M.nr,label:auto(M.k*M.nr)},{v:0,label:"0"}],[{f:f("E"),c:"viola"}]);
+    buildPanel("pI",300,M.Iavv*1.12,[{v:M.Iavv,label:auto(M.Iavv)},{v:M.Ir,label:auto(M.Ir)},{v:0,label:"0"}],[{f:f("I"),c:"blu"}]);
+    buildPanel("pP",460,M.Pavv*1.12,[{v:M.Pavv,label:auto(M.Pavv)},{v:M.Pavv/2,label:auto(M.Pavv/2)},{v:M.Pavv/4,label:auto(M.Pavv/4)},{v:0,label:"0"}],
+               [{f:f("Pa"),c:"blu"},{f:f("Pj"),c:"rosso"},{f:f("Pu"),c:"verde"}]);
+    buildPanel("pEta",300,112,[{v:100,label:"100"},{v:50,label:"50"},{v:0,label:"0"}],[{f:f("eta"),c:"verde"}]);
+  }
+
+  function showInstant(M,t){
+    var o=M.at(t);
+    $("tT").textContent=fmt(t,1); $("tN").textContent=auto(o.n); $("tE").textContent=auto(o.E); $("tI").textContent=auto(o.I);
+    $("tPa").textContent=auto(o.Pa); $("tPj").textContent=auto(o.Pj); $("tPu").textContent=auto(o.Pu); $("tEta").textContent=fmt(o.eta,0);
+  }
+  function clearInstant(){ ["tT","tN","tE","tI","tPa","tPj","tPu","tEta"].forEach(function(id){$(id).textContent="—";}); }
+
+  function showRegime(M){
+    var E=M.k*M.nr, Pa=M.V*M.Ir, Pj=M.Ra*M.Ir*M.Ir, Pu=E*M.Ir, rows=[];
+    rows.push(["Velocità del motore n",auto(M.nr)+" giri/min"]);
+    rows.push(["Velocità dell'albero di uscita n/N",auto(M.nr/M.N)+" giri/min"]);
+    rows.push(["F.c.e.m. E",auto(E)+" V"]);
+    rows.push(["Corrente I",auto(M.Ir)+" A"]);
+    rows.push(["Potenza assorbita",auto(Pa)+" W"]);
+    rows.push(["Potenza dissipata",auto(Pj)+" W"]);
+    rows.push(["Potenza utile",auto(Pu)+" W"]);
+    rows.push(["Rendimento η = E/V",fmt(100*E/M.V,0)+" %"]);
+    if(M.mass>0 && !M.stall) rows.push(["Velocità di salita della massa",fmt(2*Math.PI*RP*M.nr/(M.N*60),2)+" m/s"]);
+    var h="<table>"+rows.map(function(r){return "<tr><td>"+r[0]+'</td><td class="num">'+r[1]+"</td></tr>";}).join("")+"</table>";
+    if(M.stall) h+='<p class="hint" style="margin-top:8px;color:var(--rosso);font-weight:600">Rotore bloccato: la massa è troppo grande, il motore non parte e tutta la potenza assorbita diventa calore. Prova a ridurre la massa o ad aumentare N.</p>';
+    else if(M.mass===0) h+='<p class="hint" style="margin-top:8px">Caso ideale a vuoto: senza carico e senza attriti la corrente si annulla, quindi anche le potenze vanno a zero mentre il rendimento tende al 100 %. Aggiungi una massa per vedere un regime con carico.</p>';
+    $("regime").innerHTML=h;
+  }
+
+  // ---- scena del motore --------------------------------------------------
+  var ang={m:0,o:0,dash:0};
+  function sceneStatic(c){
+    $("scV").textContent=(c.v.V.state==="ok"?auto(c.v.V.v):"?")+" V";
+    $("scRatio").textContent="riduttore 1 : "+(c.v.N.state==="ok"?auto(c.v.N.v):"?");
+    $("scMass").style.display=c.mass>0?"":"none";
+    if(c.mass>0) $("scM").textContent=auto(c.mass)+" kg";
+  }
+  function sceneReset(){
+    ang={m:0,o:0,dash:0};
+    $("rotor").removeAttribute("transform"); $("outw").removeAttribute("transform");
+    $("glow").setAttribute("opacity","0"); $("heat").setAttribute("opacity","0");
+    $("flowTop").setAttribute("opacity","0"); $("flowBot").setAttribute("opacity","0");
+    $("scI").textContent="I = —"; $("scPj").textContent="P_J = —";
+    $("scN").textContent="— giri/min"; $("scNout").textContent="— giri/min"; $("scE").textContent="E = —";
+    $("scVup").textContent="↑ —"; $("scStall").style.display="none";
+  }
+  function sceneStep(M,t,dt){
+    var o=M.at(t), w=2*Math.PI*1.5*(o.n/M.n0);      // a vuoto: 1,5 giri al secondo sullo schermo
+    ang.m+=w*dt; ang.o+=w*dt/M.N; ang.dash+=dt*(6+80*o.I/M.Iavv);
+    $("rotor").setAttribute("transform","rotate("+(ang.m*180/Math.PI%360).toFixed(1)+" 230 130)");
+    $("outw").setAttribute("transform","rotate("+(ang.o*180/Math.PI%360).toFixed(1)+" 450 130)");
+    $("belt").setAttribute("stroke-dashoffset",(-(ang.m*14)%15).toFixed(1));
+    $("scRope").setAttribute("stroke-dashoffset",((ang.o*56)%13).toFixed(1));
+    var hot=o.Pj/M.Pavv;
+    $("heat").setAttribute("opacity",(0.03+0.72*Math.pow(hot,0.6)).toFixed(3));
+    $("glow").setAttribute("opacity",(0.42*Math.pow(hot,0.7)).toFixed(3));
+    $("flowTop").setAttribute("opacity","1"); $("flowBot").setAttribute("opacity","1");
+    $("flowTop").setAttribute("stroke-dashoffset",(-ang.dash).toFixed(1));
+    $("flowBot").setAttribute("stroke-dashoffset",(-ang.dash).toFixed(1));
+    $("scI").textContent="I = "+auto(o.I)+" A";
+    $("scPj").textContent="P_J = "+auto(o.Pj)+" W";
+    $("scN").textContent=auto(o.n)+" giri/min";
+    $("scNout").textContent=auto(o.n/M.N)+" giri/min";
+    $("scE").textContent="E = "+auto(o.E)+" V";
+    $("scVup").textContent="↑ "+fmt(2*Math.PI*RP*o.n/(M.N*60),2);
+    $("scStall").style.display=M.stall?"":"none";
+  }
+
+  // ---- simulazione -----------------------------------------------------
+  function lock(msgOnly){
+    if(run){ run.active=false; run.loop=false; run=null; }
+    sceneReset();
+    $("lock1").hidden=false; $("lock2").hidden=false;
+    emptyPanels(); clearInstant();
+    $("regime").innerHTML='<p class="hint">I valori di regime compaiono alla fine della simulazione.</p>';
+    $("go").textContent="▶ AVVIO";
+  }
+  var REDUCED=!!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  function startLoop(r){
+    r.loop=true; r.last=performance.now();
+    requestAnimationFrame(function tick(now){
+      if(run!==r||!r.loop) return;
+      var dt=Math.min(0.05,(now-r.last)/1000); r.last=now;
+      if(r.active){
+        r.t=Math.min(TMAX,r.t+dt*TMAX/DURATION);
+        drawTo(Math.round(r.t/TMAX*NS)); showInstant(r.M,r.t);
+        if(r.t>=TMAX){
+          r.active=false; r.done=true; $("go").textContent="↻ Rifai"; showRegime(r.M);
+          setStatus("ok","Simulazione completata: il motore ora gira a regime. Rispondi alle domande sul quaderno.");
+          if(REDUCED) r.loop=false;
+        }
+      }
+      sceneStep(r.M,r.t,dt);          // a regime il motore continua a girare
+      if(r.loop) requestAnimationFrame(tick);
+    });
+  }
+  function setStatus(cls,html){ var s=$("status"); s.className="status"+(cls?" "+cls:""); s.innerHTML=html; }
+
+  function idleStatus(c){
+    if(c.problems.length===0) setStatus("ok","Tutto corretto: premi AVVIO.");
+    else setStatus("","Compila i campi da 1 a 8 per sbloccare la simulazione.");
+  }
+
+  $("go").addEventListener("click",function(){
+    if(run && run.active){ run.active=false; run.loop=false; $("go").textContent="▶ Riprendi"; return; }
+    if(run && !run.done){ run.active=true; $("go").textContent="❚❚ Pausa"; startLoop(run); return; }
+    if(run){ run.loop=false; }
+    var c=check(true);
+    if(c.problems.length){
+      setStatus("bad","La simulazione non può partire. Manca:<ul><li>"+c.problems.join("</li><li>")+"</li></ul>");
+      return;
+    }
+    var M=model(c);
+    setupCharts(M);
+    $("lock1").hidden=true; $("lock2").hidden=true;
+    $("regime").innerHTML='<p class="hint">I valori di regime compaiono alla fine della simulazione.</p>';
+    sceneReset();
+    run={M:M,t:0,active:true,done:false,loop:false,last:0};
+    setStatus("ok","Simulazione in corso…");
+    if(REDUCED) run.t=TMAX-1e-9;
+    $("go").textContent="❚❚ Pausa";
+    startLoop(run);
+  });
+
+  ["fV","fN0","fRa","fN","aI","aP","fM"].forEach(function(id){
+    var el=$(id);
+    el.addEventListener("input",function(){ if(run) lock(); idleStatus(check(false)); });
+    el.addEventListener("change",function(){ touched[id]=true; idleStatus(check(false)); });
+    el.addEventListener("keydown",function(e){ if(e.key==="Enter"){ touched[id]=true; idleStatus(check(false)); } });
+  });
+  $("clear").addEventListener("click",function(){
+    ["fV","fN0","fRa","fN","aI","aP","fM"].forEach(function(id){$(id).value="";});
+    touched={}; lock(); idleStatus(check(false)); $("fV").focus();
+  });
+
+  emptyPanels(); check(false);
+})();
+</script>
+</body>
+</html>
