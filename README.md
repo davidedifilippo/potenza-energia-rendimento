@@ -1,4 +1,4 @@
-# Il motore in corrente continua
+# Potenza e rendimento del motore in c.c.
 
 Simulazioni didattiche per la lezione sul rendimento del motore in c.c.
 (STA, classe seconda, indirizzo automazione).
