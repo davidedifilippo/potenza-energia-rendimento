@@ -147,7 +147,7 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
         <div class="field" id="rowN">
           <span class="badge">5</span><label for="fN">Rapporto di riduzione 1 : N</label>
           <span class="io"><span class="num">1 :</span><input type="text" inputmode="decimal" id="fN" autocomplete="off" placeholder="—" style="width:4.4em"><span class="unit"></span></span>
-          <span class="msg" id="mN">N da 1 (nessun riduttore) a 20</span>
+          <span class="msg" id="mN">N da 1 (nessun riduttore) a 50</span>
         </div>
         <div class="field">
           <span class="badge">6</span><span class="lbl">Velocità a vuoto dell'albero di uscita<span class="tag">calcolato</span></span>
@@ -243,8 +243,22 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
           <text class="sc-t" x="506" y="234" text-anchor="middle" id="scM" style="font-size:12px">kg</text>
           <text class="sc-t f-arancio" x="540" y="226" id="scVup">↑ —</text>
           <text class="sc-m" x="540" y="244">m/s</text>
+          <!-- asta graduata: altezza della massa da 0 a 5 m -->
+          <text class="sc-m" x="622" y="62" text-anchor="middle">h [m]</text>
+          <line x1="622" y1="246" x2="622" y2="76" class="s-ink" stroke-width="1.5"/>
+          <line x1="616" y1="246" x2="622" y2="246" class="s-ink" stroke-width="1.5"/><text class="t-m" x="612" y="250" text-anchor="end" style="font-size:12px">0</text><line x1="616" y1="212" x2="622" y2="212" class="s-ink" stroke-width="1.5"/><text class="t-m" x="612" y="216" text-anchor="end" style="font-size:12px">1</text><line x1="616" y1="178" x2="622" y2="178" class="s-ink" stroke-width="1.5"/><text class="t-m" x="612" y="182" text-anchor="end" style="font-size:12px">2</text><line x1="616" y1="144" x2="622" y2="144" class="s-ink" stroke-width="1.5"/><text class="t-m" x="612" y="148" text-anchor="end" style="font-size:12px">3</text><line x1="616" y1="110" x2="622" y2="110" class="s-ink" stroke-width="1.5"/><text class="t-m" x="612" y="114" text-anchor="end" style="font-size:12px">4</text><line x1="616" y1="76" x2="622" y2="76" class="s-ink" stroke-width="1.5"/><text class="t-m" x="612" y="80" text-anchor="end" style="font-size:12px">5</text>
+          <rect id="scBar" x="619" y="246" width="6" height="0" class="f-arancio"/>
+          <path id="scMark" d="M626,246 l9,-5 v10 z" class="f-arancio"/>
         </g>
+        <text class="sc-t f-verde" x="340" y="258" text-anchor="middle" id="scTop" style="display:none">5 m: motore fermo</text>
       </svg>
+      <div class="tiles" id="liftTiles" style="display:none;margin-top:10px">
+        <div class="tile"><div class="k">Altezza h</div><div class="v num"><span id="tH">0,00</span> <span class="u">m</span></div></div>
+        <div class="tile"><div class="k">Tempo di salita t</div><div class="v num"><span id="tS">0,0</span> <span class="u">s</span></div></div>
+        <div class="tile"><div class="k">Velocità di salita</div><div class="v num"><span id="tVs">—</span> <span class="u">m/s</span></div></div>
+        <div class="tile"><div class="k">Sullo schermo</div><div class="v num"><span id="tX">—</span></div></div>
+      </div>
+      <p class="hint" id="liftNote" style="display:none;margin-top:8px">Con una massa appesa il motore la solleva fino a 5 m, poi l'alimentazione si stacca e un freno tiene ferma la massa. Il transitorio di avviamento dura una piccola frazione della salita: per questo la salita è mostrata dopo, a velocità di regime.</p>
     </div>
 
     <div class="card locked">
@@ -308,6 +322,7 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
 (function(){
   "use strict";
   var G=9.81, RP=0.01, TMAX=6, NS=300, DURATION=9;   // 6τ disegnati in 9 s
+  var HMAX=5;                                          // altezza di arrivo della massa [m]
   var $=function(id){return document.getElementById(id);};
 
   function parse(str){
@@ -324,7 +339,7 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
     V:  {inp:"fV",  row:"rowV",  msg:"mV",  base:"massimo 12 V",                    ok:function(x){return x>0&&x<=12;},     err:"Inserisci un valore maggiore di 0 e non oltre 12 V."},
     n0: {inp:"fN0", row:"rowN0", msg:"mN0", base:"giri al minuto dell'albero del motore, prima del riduttore", ok:function(x){return x>0&&x<=30000;}, err:"Inserisci un numero di giri maggiore di 0 (al massimo 30000)."},
     Ra: {inp:"fRa", row:"rowRa", msg:"mRa", base:"massimo 10 Ω",                    ok:function(x){return x>0&&x<=10;},     err:"Inserisci un valore maggiore di 0 e non oltre 10 Ω."},
-    N:  {inp:"fN",  row:"rowN",  msg:"mN",  base:"N da 1 (nessun riduttore) a 20",  ok:function(x){return x>=1&&x<=20;},    err:"N deve essere compreso tra 1 e 20."}
+    N:  {inp:"fN",  row:"rowN",  msg:"mN",  base:"N da 1 (nessun riduttore) a 50",  ok:function(x){return x>=1&&x<=50;},    err:"N deve essere compreso tra 1 e 50."}
   };
   var touched={};
   var run=null;      // stato della simulazione in corso
@@ -399,6 +414,10 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
     if(Ir>=Iavv){Ir=Iavv;stall=true;}
     var nr=(V-Ra*Ir)/k;
     var M={V:V,n0:n0,Ra:Ra,N:N,k:k,Iavv:Iavv,Pavv:V*Iavv,Ir:Ir,nr:nr,stall:stall,mass:c.mass};
+    M.lift=c.mass>0 && !stall;
+    M.vs=2*Math.PI*RP*nr/(N*60);                 // velocità di salita a regime [m/s]
+    M.ts=M.lift ? HMAX/M.vs : 0;                 // tempo per salire di 5 m [s]
+    M.k_scr=M.lift ? Math.min(Math.max(M.ts,4),20)/M.ts : 1;   // sullo schermo la salita dura da 4 a 20 s
     M.at=function(t){
       var x=Math.exp(-t), I=Ir+(Iavv-Ir)*x, n=nr*(1-x), E=k*n;
       return {n:n,E:E,I:I,Pa:V*I,Pj:Ra*I*I,Pu:E*I,eta:100*E/V};
@@ -479,7 +498,10 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
     rows.push(["Potenza dissipata",auto(Pj)+" W"]);
     rows.push(["Potenza utile",auto(Pu)+" W"]);
     rows.push(["Rendimento η = E/V",fmt(100*E/M.V,0)+" %"]);
-    if(M.mass>0 && !M.stall) rows.push(["Velocità di salita della massa",fmt(2*Math.PI*RP*M.nr/(M.N*60),2)+" m/s"]);
+    if(M.lift){
+      rows.push(["Velocità di salita della massa",fmt(M.vs,2)+" m/s"]);
+      rows.push(["Tempo per salire di "+HMAX+" m",fmt(M.ts,1)+" s"]);
+    }
     var h="<table>"+rows.map(function(r){return "<tr><td>"+r[0]+'</td><td class="num">'+r[1]+"</td></tr>";}).join("")+"</table>";
     if(M.stall) h+='<p class="hint" style="margin-top:8px;color:var(--rosso);font-weight:600">Rotore bloccato: la massa è troppo grande, il motore non parte e tutta la potenza assorbita diventa calore. Prova a ridurre la massa o ad aumentare N.</p>';
     else if(M.mass===0) h+='<p class="hint" style="margin-top:8px">Caso ideale a vuoto: senza carico e senza attriti la corrente si annulla, quindi anche le potenze vanno a zero mentre il rendimento tende al 100 %. Aggiungi una massa per vedere un regime con carico.</p>';
@@ -492,6 +514,7 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
     $("scV").textContent=(c.v.V.state==="ok"?auto(c.v.V.v):"?")+" V";
     $("scRatio").textContent="riduttore 1 : "+(c.v.N.state==="ok"?auto(c.v.N.v):"?");
     $("scMass").style.display=c.mass>0?"":"none";
+    $("liftTiles").style.display=c.mass>0?"":"none"; $("liftNote").style.display=c.mass>0?"":"none";
     if(c.mass>0) $("scM").textContent=auto(c.mass)+" kg";
   }
   function sceneReset(){
@@ -502,13 +525,35 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
     $("scI").textContent="I = —"; $("scPj").textContent="P_J = —";
     $("scN").textContent="— giri/min"; $("scNout").textContent="— giri/min"; $("scE").textContent="E = —";
     $("scVup").textContent="↑ —"; $("scStall").style.display="none";
+    $("scTop").style.display="none"; showHeight(0,0,null);
+  }
+  function showHeight(h,t,M){
+    var y=246-34*h;
+    $("scBar").setAttribute("y",y.toFixed(1)); $("scBar").setAttribute("height",(246-y).toFixed(1));
+    $("scMark").setAttribute("d","M626,"+y.toFixed(1)+" l9,-5 v10 z");
+    $("tH").textContent=fmt(h,2); $("tS").textContent=fmt(t,1);
+    $("tVs").textContent=M?fmt(M.vs,2):"—";
+    if(!M) $("tX").textContent="—";
+    else{
+      var k=1/M.k_scr;   // secondi veri per ogni secondo sullo schermo
+      $("tX").textContent=Math.abs(k-1)<0.05?"tempo reale":(k>1?"accelerato ×"+sig(k,2):"rallentato ×"+sig(1/k,2));
+    }
+  }
+  function sceneStopped(M){
+    $("glow").setAttribute("opacity","0"); $("heat").setAttribute("opacity","0");
+    $("flowTop").setAttribute("opacity","0"); $("flowBot").setAttribute("opacity","0");
+    $("scI").textContent="I = 0 A"; $("scPj").textContent="P_J = 0 W";
+    $("scN").textContent="0 giri/min"; $("scNout").textContent="0 giri/min"; $("scE").textContent="E = 0 V";
+    $("scVup").textContent="↑ 0,00"; $("scTop").style.display="";
+    ["tN","tE","tI","tPa","tPj","tPu"].forEach(function(id){$(id).textContent="0";}); $("tEta").textContent="—";
   }
   function sceneStep(M,t,dt){
     var o=M.at(t), w=2*Math.PI*1.5*(o.n/M.n0);      // a vuoto: 1,5 giri al secondo sullo schermo
     ang.m+=w*dt; ang.o+=w*dt/M.N; ang.dash+=dt*(6+80*o.I/M.Iavv);
-    $("rotor").setAttribute("transform","rotate("+(ang.m*180/Math.PI%360).toFixed(1)+" 230 130)");
-    $("outw").setAttribute("transform","rotate("+(ang.o*180/Math.PI%360).toFixed(1)+" 450 130)");
-    $("belt").setAttribute("stroke-dashoffset",(-(ang.m*14)%15).toFixed(1));
+    // verso antiorario: il lato destro della puleggia di uscita sale e solleva la massa
+    $("rotor").setAttribute("transform","rotate("+(-(ang.m*180/Math.PI%360)).toFixed(1)+" 230 130)");
+    $("outw").setAttribute("transform","rotate("+(-(ang.o*180/Math.PI%360)).toFixed(1)+" 450 130)");
+    $("belt").setAttribute("stroke-dashoffset",((ang.m*14)%15).toFixed(1));
     $("scRope").setAttribute("stroke-dashoffset",((ang.o*56)%13).toFixed(1));
     var hot=o.Pj/M.Pavv;
     $("heat").setAttribute("opacity",(0.03+0.72*Math.pow(hot,0.6)).toFixed(3));
@@ -540,13 +585,28 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
     requestAnimationFrame(function tick(now){
       if(run!==r||!r.loop) return;
       var dt=Math.min(0.05,(now-r.last)/1000); r.last=now;
-      if(r.active){
+      if(r.active && r.phase==="avvio"){
         r.t=Math.min(TMAX,r.t+dt*TMAX/DURATION);
         drawTo(Math.round(r.t/TMAX*NS)); showInstant(r.M,r.t);
         if(r.t>=TMAX){
-          r.active=false; r.done=true; $("go").textContent="↻ Rifai"; showRegime(r.M);
-          setStatus("ok","Simulazione completata: il motore ora gira a regime. Rispondi alle domande sul quaderno.");
-          if(REDUCED) r.loop=false;
+          showRegime(r.M);
+          if(r.M.lift){
+            r.phase="salita"; if(REDUCED) r.ts=r.M.ts;
+            setStatus("ok","Transitorio finito: ora la massa sale a velocità costante fino a "+HMAX+" m.");
+          }else{
+            r.active=false; r.done=true; $("go").textContent="↻ Rifai";
+            setStatus("ok","Simulazione completata: il motore ora gira a regime. Rispondi alle domande sul quaderno.");
+            if(REDUCED) r.loop=false;
+          }
+        }
+      }else if(r.active && r.phase==="salita"){
+        r.ts=Math.min(r.M.ts,r.ts+dt/r.M.k_scr);
+        showHeight(HMAX*r.ts/r.M.ts,r.ts,r.M);
+        if(r.ts>=r.M.ts){
+          r.phase="fermo"; r.active=false; r.done=true; r.loop=false; $("go").textContent="↻ Rifai";
+          sceneStopped(r.M);
+          setStatus("ok","La massa è arrivata a "+HMAX+" m in "+fmt(r.M.ts,1)+" s: l'alimentazione si stacca e il motore si ferma. Rispondi alle domande sul quaderno.");
+          return;
         }
       }
       sceneStep(r.M,r.t,dt);          // a regime il motore continua a girare
@@ -574,7 +634,8 @@ ol.q{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:8px;max-
     $("lock1").hidden=true; $("lock2").hidden=true;
     $("regime").innerHTML='<p class="hint">I valori di regime compaiono alla fine della simulazione.</p>';
     sceneReset();
-    run={M:M,t:0,active:true,done:false,loop:false,last:0};
+    run={M:M,t:0,ts:0,phase:"avvio",active:true,done:false,loop:false,last:0};
+    showHeight(0,0,M);
     setStatus("ok","Simulazione in corso…");
     if(REDUCED) run.t=TMAX-1e-9;
     $("go").textContent="❚❚ Pausa";
