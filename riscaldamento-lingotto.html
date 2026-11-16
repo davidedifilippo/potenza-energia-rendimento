@@ -92,7 +92,7 @@ footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);marg
         <option value="ottone">Ottone</option>
         <option value="piombo">Piombo</option>
       </select></label>
-    <label><span>Calore specifico c <small>(J/kg·K)</small></span><input id="c" type="number" value="385" step="1"></label>
+    <label><span>Calore specifico c <small>(J/kg·°C)</small></span><input id="c" type="number" value="385" step="1"></label>
     <label><span>Massa m <small>(g)</small></span><input id="m" type="number" value="200" min="1" step="10"></label>
     <label><span>T iniziale <small>(°C)</small></span><input id="T0" type="number" value="20" step="1"></label>
     <label><span>T finale <small>(°C)</small></span><input id="Tf" type="number" value="100" step="10"></label>
@@ -271,7 +271,7 @@ function params(){
   p.tIdeal=p.C*(p.Tf-p.T0)/p.P;
   p.Teq = p.real? equilibrium() : Infinity;
   const c=$("calc");
-  let html=`m·c = ${fmt(p.m,3)} kg · ${p.c} J/kg·K = <b>${fmt(p.C,1)} J/K</b><br>
+  let html=`m·c = ${fmt(p.m,3)} kg · ${p.c} J/kg·°C = <b>${fmt(p.C,1)} J/°C</b><br>
   Gradiente ideale = P/(m·c) = <b>${fmt(p.grad0,2)} °C/s</b><br>
   Tempo ideale = m·c·ΔT/P = <b>${fmt(p.tIdeal,1)} s</b>`;
   if(p.real) html+=`<br>T di equilibrio (reale) ≈ <b>${isFinite(p.Teq)?fmt(p.Teq,0)+" °C":"—"}</b>`+
