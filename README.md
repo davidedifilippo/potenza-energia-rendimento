@@ -1,6 +1,7 @@
-# Potenza e rendimento del motore in c.c.
+# Potenza, energia e rendimento
 
-Simulazioni didattiche per la lezione sul rendimento del motore in c.c.
+Simulazioni didattiche sulla potenza elettrica, l'energia e il rendimento:
+il motore in c.c., il riscaldamento di un lingotto, lo scaldabagno e il contatore
 (STA, classe seconda, indirizzo automazione).
 
 **Autore:** Prof. Di Filippo Davide
