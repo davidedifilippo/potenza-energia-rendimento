@@ -210,7 +210,8 @@ footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);marg
       <div class="f">E = P · t &nbsp;&nbsp;&nbsp; E = m · c · ΔT &nbsp;⇒&nbsp; T(t) = T₀ + P·t / (m·c)</div>
       <p>Il gradiente è costante, quindi il grafico è una retta: <span class="f" style="display:inline-block;margin:0">ΔT/Δt = P / (m·c)</span>, e il tempo per arrivare a T finale è <span class="f" style="display:inline-block;margin:0">t = m·c·(T_f − T₀) / P</span>.</p>
       <p><b>Caso reale.</b> Solo la frazione η della potenza arriva al lingotto (contatto termico imperfetto, perdite nell'induttore) e il lingotto cede calore all'ambiente per convezione e irraggiamento, tanto più quanto è caldo:</p>
-      <div class="f r">m·c · dT/dt = η·P − h·A·(T − Tₐ) − ε·σ·A·(T⁴ − Tₐ⁴) &nbsp;&nbsp;(T in kelvin nel termine radiativo)</div>
+      <div class="f r">m·c · dT/dt = η·P − h·A·(T − Tₐ) − ε·σ·A·(T⁴ − Tₐ⁴)</div>
+      <p>Nel termine dell'irraggiamento la temperatura va espressa in kelvin: <span class="f r" style="display:inline-block;margin:0">T(K) = T(°C) + 273,15</span></p>
       <p>Il gradiente cala man mano che la temperatura sale e la curva si piega verso una <b>temperatura di equilibrio</b>, dove la potenza dispersa uguaglia quella utile. Se l'equilibrio sta sotto T finale, il riscaldatore non ce la fa mai. A è calcolata immaginando un lingotto con lunghezza doppia del lato (V = m/ρ, A = 10·a²). Il calcolo procede a passi di 10 ms (metodo di Eulero).</p>
     </div>
   </div>
