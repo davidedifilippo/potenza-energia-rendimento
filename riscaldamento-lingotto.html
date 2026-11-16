@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<!-- Materiale didattico di Prof. Di Filippo Davide (STA). Autore: Prof. Di Filippo Davide.
+     Codice: GNU GPL v3 o successiva (SPDX: GPL-3.0-or-later), vedi LICENSE.
+     Contenuti didattici: CC BY-SA 4.0, vedi LICENSE-CONTENUTI.
+     Termine aggiuntivo (GPLv3, sez. 7b): le versioni modificate devono mantenere visibile
+     nella pagina la dicitura "Autore originale: Prof. Di Filippo Davide". -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Prof. Di Filippo Davide">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulatore di riscaldamento di un lingotto</title>
+<style>
+:root{
+  --bg:#f4f1ea; --card:#fffdf8; --ink:#1f2328; --muted:#6b6f76; --line:#ddd6c8;
+  --accent:#b5541c; --accent2:#1f6f8b; --ok:#2e7d4f; --warn:#b3261e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 20px 6px}
+h1{font-size:1.35rem;margin:0 0 2px}
+header p{margin:0;color:var(--muted);font-size:.9rem}
+.wrap{display:grid;grid-template-columns:320px 1fr;gap:16px;padding:12px 20px 24px;max-width:1300px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;padding:10px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:7px 0;font-size:.9rem}
+label span small{color:var(--muted)}
+input[type=number],select{width:118px;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:#fff;font:inherit;font-size:.9rem}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:6px 0 10px}
+.seg button{flex:1;border:0;background:#fff;padding:7px 4px;font:inherit;font-size:.85rem;cursor:pointer;color:var(--ink)}
+.seg button.on{background:var(--ink);color:#fff}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:8px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.sec{background:#e9e3d7;color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.real{border-top:1px dashed var(--line);margin-top:10px;padding-top:6px}
+.real.off{opacity:.4;pointer-events:none}
+.calc{font-size:.85rem;background:#f7f3ea;border-radius:8px;padding:8px 10px;margin-top:10px}
+.calc b{color:var(--accent)}
+.main{display:grid;gap:16px;min-width:0}
+.top{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+@media(max-width:1100px){.top{grid-template-columns:1fr}}
+svg#scene{width:100%;height:auto;display:block;background:linear-gradient(#fbf8f1,#eee7d8);border-radius:10px}
+.readouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ro{background:#f7f3ea;border-radius:8px;padding:7px 9px}
+.ro .k{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ro .v{font-size:1.05rem;font-weight:650;font-variant-numeric:tabular-nums}
+#status{margin-top:10px;font-size:.9rem;padding:8px 10px;border-radius:8px;background:#eef4f6;color:var(--accent2)}
+#status.done{background:#e8f3ec;color:var(--ok)}
+#status.warn{background:#fbeceb;color:var(--warn)}
+canvas{width:100%;height:300px;display:block}
+.legend{display:flex;gap:14px;font-size:.8rem;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px}
+.tbl{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:5px 9px;text-align:right;border-bottom:1px solid #eee7da;white-space:nowrap}
+th{position:sticky;top:0;background:#f1ebdf;font-weight:600;font-size:.78rem}
+tr.last td{background:#fff3e6;font-weight:650}
+.theory{font-size:.9rem}
+.theory .f{font-family:"Cambria Math",Georgia,serif;background:#f7f3ea;border-left:3px solid var(--accent);padding:6px 10px;margin:6px 0;border-radius:0 6px 6px 0}
+.theory .f.r{border-color:var(--accent2)}
+footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);margin:0 20px 24px;padding-top:10px;max-width:1260px}
+.byline{font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent2);margin-bottom:2px}
+#copied{font-size:.8rem;color:var(--ok);margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="byline">Prof. Di Filippo Davide · STA</div>
+  <h1>Riscaldamento di un lingotto metallico</h1>
+  <p>Riscaldatore ideale o con perdite · tabella tempo / energia / temperatura · gradiente termico</p>
+</header>
+
+<div class="wrap">
+  <!-- PARAMETRI -->
+  <div class="card">
+    <h2>Riscaldatore</h2>
+    <div class="seg" id="segHeater">
+      <button data-v="res" class="on">Resistivo</button>
+      <button data-v="ind">Induttivo</button>
+    </div>
+    <label><span>Potenza P <small>(W)</small></span><input id="P" type="number" value="500" min="1" step="50"></label>
+
+    <h2 style="margin-top:14px">Materiale</h2>
+    <label><span>Materiale</span>
+      <select id="mat">
+        <option value="rame">Rame</option>
+        <option value="alluminio">Alluminio</option>
+        <option value="ferro">Ferro</option>
+        <option value="ottone">Ottone</option>
+        <option value="piombo">Piombo</option>
+      </select></label>
+    <label><span>Calore specifico c <small>(J/kg·K)</small></span><input id="c" type="number" value="385" step="1"></label>
+    <label><span>Massa m <small>(g)</small></span><input id="m" type="number" value="200" min="1" step="10"></label>
+    <label><span>T iniziale <small>(°C)</small></span><input id="T0" type="number" value="20" step="1"></label>
+    <label><span>T finale <small>(°C)</small></span><input id="Tf" type="number" value="100" step="10"></label>
+
+    <h2 style="margin-top:14px">Simulazione</h2>
+    <div class="seg" id="segMode">
+      <button data-v="ideal" class="on">Ideale</button>
+      <button data-v="real">Reale (con perdite)</button>
+    </div>
+    <label><span>Passo tabella <small>(s)</small></span>
+      <select id="step"><option>0.5</option><option selected>1</option><option>2</option><option>5</option><option>10</option><option>30</option></select></label>
+    <label><span>Velocità</span>
+      <select id="speed"><option value="1" selected>×1 (tempo reale)</option><option value="2">×2</option><option value="5">×5</option><option value="10">×10</option><option value="50">×50</option><option value="200">×200</option></select></label>
+
+    <div class="real off" id="realBox">
+      <label><span>Rendimento η <small>(%)</small></span><input id="eta" type="number" value="90" min="1" max="100"></label>
+      <label><span>T ambiente <small>(°C)</small></span><input id="Ta" type="number" value="20"></label>
+      <label><span>Coeff. convezione h <small>(W/m²°C)</small></span><input id="h" type="number" value="15" step="1"></label>
+      <label><span>Emissività ε</span><input id="eps" type="number" value="0.6" step="0.05" min="0" max="1"></label>
+      <label><span>Superficie A <small>(cm²)</small></span><input id="A" type="number" disabled></label>
+    </div>
+
+    <div class="calc" id="calc"></div>
+
+    <div class="btns">
+      <button class="btn primary" id="go">▶ Avvia</button>
+      <button class="btn sec" id="reset">↺ Reset</button>
+      <button class="btn sec" id="csv">Copia tabella</button><span id="copied"></span>
+    </div>
+  </div>
+
+  <!-- AREA PRINCIPALE -->
+  <div class="main">
+    <div class="top">
+      <div class="card">
+        <h2>Animazione</h2>
+        <svg id="scene" viewBox="0 0 420 260" aria-label="Lingotto sul riscaldatore">
+          <defs>
+            <radialGradient id="glow"><stop offset="0" stop-color="#ff7a20" stop-opacity=".55"/><stop offset="1" stop-color="#ff7a20" stop-opacity="0"/></radialGradient>
+          </defs>
+          <!-- banco -->
+          <rect x="0" y="222" width="420" height="38" fill="#d9cfbd"/>
+          <ellipse id="halo" cx="200" cy="150" rx="150" ry="80" fill="url(#glow)" opacity="0"/>
+
+          <!-- riscaldatore resistivo -->
+          <g id="gRes">
+            <rect x="70" y="190" width="260" height="22" rx="4" fill="#3a3d42"/>
+            <rect x="70" y="212" width="260" height="10" fill="#26282c"/>
+            <path id="coilRes" d="M85 201 l10 -6 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -12 l10 12 l10 -6"
+                  fill="none" stroke="#5a2a20" stroke-width="2.5" stroke-linejoin="round"/>
+          </g>
+          <!-- spire induttive (dietro) -->
+          <g id="gIndBack" style="display:none"></g>
+
+          <!-- onde di calore disperso -->
+          <g id="waves" opacity="0" stroke="#c0623a" stroke-width="2" fill="none" stroke-linecap="round">
+            <path d="M150 85 q6 -8 0 -16 q-6 -8 0 -16"/>
+            <path d="M200 85 q6 -8 0 -16 q-6 -8 0 -16"/>
+            <path d="M250 85 q6 -8 0 -16 q-6 -8 0 -16"/>
+          </g>
+
+          <!-- lingotto -->
+          <g id="ingot">
+            <polygon id="fTop" points="120,128 150,105 300,105 270,128"/>
+            <polygon id="fSide" points="270,128 300,105 300,165 270,188"/>
+            <rect id="fFront" x="120" y="128" width="150" height="60"/>
+            <rect x="120" y="128" width="150" height="60" fill="none" stroke="#0003"/>
+          </g>
+
+          <!-- spire induttive (davanti) -->
+          <g id="gIndFront" style="display:none"></g>
+
+          <!-- etichetta temperatura -->
+          <line x1="295" y1="112" x2="330" y2="62" stroke="#555" stroke-width="1"/>
+          <circle cx="295" cy="112" r="3" fill="#555"/>
+          <rect x="300" y="22" width="112" height="42" rx="8" fill="#1f2328"/>
+          <text id="tLabel" x="356" y="51" text-anchor="middle" fill="#fff" font-size="20" font-weight="700" font-family="system-ui">20,0 °C</text>
+          <text x="12" y="24" font-size="13" fill="#555" font-family="system-ui" id="tTime">t = 0,0 s</text>
+          <text x="12" y="42" font-size="12" fill="#888" font-family="system-ui" id="tOn">riscaldatore spento</text>
+          <text x="195" y="245" text-anchor="middle" font-size="12" fill="#555" font-family="system-ui" id="tName">Rame · 200 g</text>
+        </svg>
+        <div class="readouts">
+          <div class="ro"><div class="k">Tempo</div><div class="v" id="rT">0 s</div></div>
+          <div class="ro"><div class="k">Temperatura</div><div class="v" id="rTemp">20 °C</div></div>
+          <div class="ro"><div class="k">Gradiente</div><div class="v" id="rGrad">0 °C/s</div></div>
+          <div class="ro"><div class="k">E assorbita</div><div class="v" id="rE">0 J</div></div>
+          <div class="ro"><div class="k">P utile</div><div class="v" id="rPu">0 W</div></div>
+          <div class="ro"><div class="k">P dispersa</div><div class="v" id="rPl">0 W</div></div>
+        </div>
+        <div id="status">Imposta i parametri e premi Avvia.</div>
+      </div>
+
+      <div class="card">
+        <h2>Temperatura nel tempo</h2>
+        <canvas id="chart"></canvas>
+        <div class="legend">
+          <span><i style="background:#b5541c"></i>simulazione</span>
+          <span><i style="background:repeating-linear-gradient(90deg,#1f6f8b 0 5px,transparent 5px 9px)"></i>retta ideale</span>
+          <span><i style="background:#2e7d4f"></i>T finale</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tabella dei valori</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>t (s)</th><th>E fornita (J)</th><th>E dispersa (J)</th><th>E assorbita (J)</th><th>T (°C)</th><th>ΔT/Δt (°C/s)</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card theory">
+      <h2>Il modello</h2>
+      <p><b>Caso ideale.</b> Tutta la potenza diventa calore nel lingotto e nulla va perso. L'energia assorbita fa salire la temperatura in proporzione:</p>
+      <div class="f">E = P · t &nbsp;&nbsp;&nbsp; E = m · c · ΔT &nbsp;⇒&nbsp; T(t) = T₀ + P·t / (m·c)</div>
+      <p>Il gradiente è costante, quindi il grafico è una retta: <span class="f" style="display:inline-block;margin:0">ΔT/Δt = P / (m·c)</span>, e il tempo per arrivare a T finale è <span class="f" style="display:inline-block;margin:0">t = m·c·(T_f − T₀) / P</span>.</p>
+      <p><b>Caso reale.</b> Solo la frazione η della potenza arriva al lingotto (contatto termico imperfetto, perdite nell'induttore) e il lingotto cede calore all'ambiente per convezione e irraggiamento, tanto più quanto è caldo:</p>
+      <div class="f r">m·c · dT/dt = η·P − h·A·(T − Tₐ) − ε·σ·A·(T⁴ − Tₐ⁴) &nbsp;&nbsp;(T in kelvin nel termine radiativo)</div>
+      <p>Il gradiente cala man mano che la temperatura sale e la curva si piega verso una <b>temperatura di equilibrio</b>, dove la potenza dispersa uguaglia quella utile. Se l'equilibrio sta sotto T finale, il riscaldatore non ce la fa mai. A è calcolata immaginando un lingotto con lunghezza doppia del lato (V = m/ρ, A = 10·a²). Il calcolo procede a passi di 10 ms (metodo di Eulero).</p>
+    </div>
+  </div>
+</div>
+<footer>© 2026 Prof. Di Filippo Davide. Materiale didattico per le classi di STA. Codice GPLv3, contenuti CC BY-SA 4.0.</footer>
+
+<script>
+const MAT={
+  rame:{n:"Rame",c:385,rho:8960,Tm:1085,eps:0.6,col:[184,115,51]},
+  alluminio:{n:"Alluminio",c:897,rho:2700,Tm:660,eps:0.2,col:[200,204,210]},
+  ferro:{n:"Ferro",c:449,rho:7874,Tm:1538,eps:0.7,col:[110,110,115]},
+  ottone:{n:"Ottone",c:380,rho:8500,Tm:930,eps:0.3,col:[201,166,64]},
+  piombo:{n:"Piombo",c:129,rho:11340,Tm:327,eps:0.4,col:[122,127,136]}
+};
+const SIG=5.670e-8;
+const $=id=>document.getElementById(id);
+let heater="res", mode="ideal";
+const fmt=(x,d=1)=>Number(x).toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});
+
+// ---- spire induttive ----
+(function buildCoil(){
+  let back="",front="";
+  for(let i=0;i<7;i++){
+    const x=128+i*24;
+    back+=`<path d="M${x+14} 92 A10 56 0 0 0 ${x+14} 204" />`;
+    front+=`<path d="M${x} 92 A10 56 0 0 0 ${x} 204" />`;
+  }
+  $("gIndBack").innerHTML=`<g fill="none" stroke="#8a4a1e" stroke-width="5" opacity=".6">${back}</g>`;
+  $("gIndFront").innerHTML=`<g fill="none" stroke="#d08040" stroke-width="5" stroke-linecap="round" class="coilF">${front}</g>`;
+})();
+
+function seg(id,cb){
+  $(id).querySelectorAll("button").forEach(b=>b.onclick=()=>{
+    if(S.running) return;
+    $(id).querySelectorAll("button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); cb(b.dataset.v);
+  });
+}
+seg("segHeater",v=>{heater=v; $("eta").value = v==="res"?90:75; params(); resetSim();});
+seg("segMode",v=>{mode=v; $("realBox").classList.toggle("off",v!=="real"); params(); resetSim();});
+$("mat").onchange=()=>{const M=MAT[$("mat").value]; $("c").value=M.c; $("eps").value=M.eps; params(); resetSim();};
+["P","c","m","T0","Tf","eta","Ta","h","eps"].forEach(id=>$(id).addEventListener("input",()=>{if(!S.running){params();resetSim();}}));
+$("step").onchange=()=>{if(!S.running) resetSim();};
+
+// ---- parametri ----
+let p={};
+function params(){
+  const M=MAT[$("mat").value];
+  p.M=M; p.P=+$("P").value; p.c=+$("c").value; p.m=+$("m").value/1000;
+  p.T0=+$("T0").value; p.Tf=+$("Tf").value;
+  p.real = mode==="real";
+  p.eta = p.real? (+$("eta").value)/100 : 1;
+  p.Ta=+$("Ta").value; p.h=+$("h").value; p.eps=+$("eps").value;
+  const V=p.m/M.rho, a=Math.cbrt(V/2); p.A=10*a*a;
+  $("A").value=(p.A*1e4).toFixed(1);
+  p.C=p.m*p.c;
+  p.grad0=p.P/p.C;
+  p.tIdeal=p.C*(p.Tf-p.T0)/p.P;
+  p.Teq = p.real? equilibrium() : Infinity;
+  const c=$("calc");
+  let html=`m·c = ${fmt(p.m,3)} kg · ${p.c} J/kg·K = <b>${fmt(p.C,1)} J/K</b><br>
+  Gradiente ideale = P/(m·c) = <b>${fmt(p.grad0,2)} °C/s</b><br>
+  Tempo ideale = m·c·ΔT/P = <b>${fmt(p.tIdeal,1)} s</b>`;
+  if(p.real) html+=`<br>T di equilibrio (reale) ≈ <b>${isFinite(p.Teq)?fmt(p.Teq,0)+" °C":"—"}</b>`+
+     (p.Teq<p.Tf?` <span style="color:var(--warn)">&lt; T finale: non raggiungibile</span>`:"");
+  if(p.Tf>=M.Tm) html+=`<br><span style="color:var(--warn)">Attenzione: il ${M.n.toLowerCase()} fonde a ${M.Tm} °C</span>`;
+  c.innerHTML=html;
+  $("tName").textContent=`${M.n} · ${$("m").value} g`;
+  $("gRes").style.display = heater==="res"?"":"none";
+  $("gIndBack").style.display=$("gIndFront").style.display = heater==="ind"?"":"none";
+}
+function Ploss(T){
+  if(!p.real) return 0;
+  const Tk=T+273.15, Tak=p.Ta+273.15;
+  return p.h*p.A*(T-p.Ta) + p.eps*SIG*p.A*(Tk**4-Tak**4);
+}
+function equilibrium(){
+  const Pu=p.eta*p.P; let lo=p.Ta, hi=p.Ta+1;
+  while(Ploss(hi)<Pu && hi<1e5) hi=(hi-p.Ta)*2+p.Ta;
+  if(hi>=1e5) return Infinity;
+  for(let i=0;i<80;i++){const mid=(lo+hi)/2; (Ploss(mid)<Pu)?lo=mid:hi=mid;}
+  return (lo+hi)/2;
+}
+
+// ---- stato simulazione ----
+const S={};
+function resetSim(){
+  Object.assign(S,{running:false,done:false,t:0,T:p.T0,Ein:0,Eloss:0,nextRow:0,last:null,pts:[[0,p.T0]],lastFrame:null});
+  S.dtRow=+$("step").value;
+  $("tb").innerHTML="";
+  addRow();
+  $("go").textContent="▶ Avvia"; $("go").disabled=false;
+  setStatus("Imposta i parametri e premi Avvia.","");
+  draw(); drawChart();
+}
+function addRow(final){
+  const Eabs=p.C*(S.T-p.T0);
+  let grad="—";
+  if(S.last && S.t>S.last.t) grad=fmt((S.T-S.last.T)/(S.t-S.last.t),3);
+  const tr=document.createElement("tr");
+  if(final) tr.className="last";
+  tr.innerHTML=`<td>${fmt(S.t,S.dtRow<1||final?2:1)}</td><td>${fmt(S.Ein,0)}</td><td>${fmt(S.Eloss,0)}</td><td>${fmt(Eabs,0)}</td><td>${fmt(S.T,2)}</td><td>${grad}</td>`;
+  $("tb").appendChild(tr);
+  const box=$("tb").parentElement.parentElement; box.scrollTop=box.scrollHeight;
+  S.last={t:S.t,T:S.T};
+  S.nextRow+=S.dtRow;
+}
+function setStatus(msg,cls){const s=$("status"); s.textContent=msg; s.className=cls||"";}
+
+// ---- passo di integrazione ----
+const H=0.01;
+function advance(simDt){
+  let rem=simDt;
+  while(rem>1e-12 && !S.done){
+    let h=Math.min(H,rem, S.nextRow-S.t);
+    if(h<=1e-12){ addRow(); continue; }
+    const Pu=p.eta*p.P, Pl=Ploss(S.T);
+    const dTdt=(Pu-Pl)/p.C;
+    let Tn=S.T+dTdt*h;
+    // arrivo a T finale dentro il sottopasso: interpolazione
+    if(Tn>=p.Tf && dTdt>0){
+      const hh=(p.Tf-S.T)/dTdt;
+      S.t+=hh; S.Ein+=p.P*hh; S.Eloss+=(p.P-Pu+Pl)*hh; S.T=p.Tf;
+      finish(`Temperatura finale raggiunta in ${fmt(S.t,2)} s`+(p.real?` (ideale: ${fmt(p.tIdeal,2)} s)`:"")+".","done");
+      return;
+    }
+    S.t+=h; S.Ein+=p.P*h; S.Eloss+=(p.P-Pu+Pl)*h; S.T=Tn; rem-=h;
+    if(S.T>=p.M.Tm){ finish(`Il ${p.M.n.toLowerCase()} ha raggiunto la temperatura di fusione (${p.M.Tm} °C). Simulazione interrotta.`,"warn"); return; }
+    if(p.real && p.Teq<p.Tf && S.T>=p.Teq-0.5){
+      finish(`Equilibrio termico a ≈ ${fmt(p.Teq,1)} °C: la potenza dispersa uguaglia quella utile, T finale non raggiungibile.`,"warn"); return;
+    }
+    if(Math.abs(S.t-S.nextRow)<1e-9) addRow();
+  }
+}
+function finish(msg,cls){
+  S.done=true; S.running=false;
+  addRow(true);
+  $("go").textContent="▶ Avvia"; $("go").disabled=true;
+  setStatus(msg,cls);
+}
+
+function loop(ts){
+  if(!S.running){S.lastFrame=null; return;}
+  if(S.lastFrame==null) S.lastFrame=ts;
+  const real=Math.min((ts-S.lastFrame)/1000,0.1); S.lastFrame=ts;
+  advance(real*(+$("speed").value));
+  const lp=S.pts[S.pts.length-1];
+  if(S.t-lp[0]>0.02 || S.done) S.pts.push([S.t,S.T]);
+  draw(); drawChart();
+  requestAnimationFrame(loop);
+}
+$("go").onclick=()=>{
+  if(S.done) return;
+  if(S.running){S.running=false; $("go").textContent="▶ Riprendi"; setStatus("In pausa.",""); draw(); return;}
+  S.running=true; $("go").textContent="❚❚ Pausa"; setStatus("Riscaldamento in corso…","");
+  requestAnimationFrame(loop);
+};
+$("reset").onclick=()=>{params(); resetSim();};
+
+// ---- copia CSV (separatore ; e virgola decimale, per Excel italiano) ----
+$("csv").onclick=async()=>{
+  const rows=[["t (s)","E fornita (J)","E dispersa (J)","E assorbita (J)","T (°C)","DT/Dt (°C/s)"]];
+  $("tb").querySelectorAll("tr").forEach(tr=>rows.push([...tr.children].map(td=>td.textContent.replace(/\./g,""))));
+  const txt=rows.map(r=>r.join(";")).join("\n");
+  try{await navigator.clipboard.writeText(txt); $("copied").textContent="Copiata ✓";}
+  catch(e){$("copied").textContent="Copia non consentita";}
+  setTimeout(()=>$("copied").textContent="",2000);
+};
+
+// ---- colore del lingotto ----
+function mix(a,b,f){return a.map((v,i)=>Math.round(v+(b[i]-v)*f));}
+function glowColor(T){
+  const st=[[450,[90,10,0]],[650,[170,25,8]],[850,[240,90,20]],[1050,[255,170,50]],[1300,[255,235,170]]];
+  if(T<=st[0][0]) return st[0][1];
+  for(let i=1;i<st.length;i++) if(T<=st[i][0]){const f=(T-st[i-1][0])/(st[i][0]-st[i-1][0]); return mix(st[i-1][1],st[i][1],f);}
+  return st[st.length-1][1];
+}
+function ingotRGB(T){
+  let base=p.M.col;
+  // leggero imbrunimento sotto i 400 °C (ossidazione / tempra)
+  const warm=Math.min(Math.max((T-100)/350,0),1);
+  base=mix(base,[Math.min(base[0]+20,255),base[1]*0.75,base[2]*0.6],warm*0.5);
+  const f=Math.min(Math.max((T-420)/250,0),1);
+  return mix(base,glowColor(T),f);
+}
+const rgb=(c,k=1)=>`rgb(${c.map(v=>Math.max(0,Math.min(255,Math.round(v*k)))).join(",")})`;
+
+function draw(){
+  const c=ingotRGB(S.T);
+  $("fFront").setAttribute("fill",rgb(c));
+  $("fTop").setAttribute("fill",rgb(c,1.18));
+  $("fSide").setAttribute("fill",rgb(c,0.72));
+  $("halo").setAttribute("opacity",Math.min(Math.max((S.T-450)/500,0),1).toFixed(2));
+  $("tLabel").textContent=fmt(S.T,1)+" °C";
+  $("tTime").textContent="t = "+fmt(S.t,1)+" s";
+  const on=S.running;
+  $("tOn").textContent= on? (heater==="res"?"resistenza accesa · ":"induttore acceso · ")+p.P+" W" : (S.done?"riscaldatore spento":"riscaldatore spento");
+  $("coilRes").setAttribute("stroke", on? "#ff5a1f":"#5a2a20");
+  $("coilRes").style.filter = on? "drop-shadow(0 0 4px #ff6a20)":"none";
+  const cf=document.querySelector(".coilF");
+  if(cf){cf.setAttribute("stroke",on?"#ffa060":"#d08040"); cf.style.filter=on?"drop-shadow(0 0 3px #4fb3ff)":"none";}
+  // onde di calore disperso
+  const Pl=Ploss(S.T), frac=p.real? Math.min(Pl/(p.eta*p.P),1):0;
+  const w=$("waves"); w.setAttribute("opacity",(frac*0.9).toFixed(2));
+  w.setAttribute("transform",`translate(0,${-((performance.now()/40)%14)})`);
+  // letture
+  const g=(p.eta*p.P-Pl)/p.C;
+  $("rT").textContent=fmt(S.t,1)+" s";
+  $("rTemp").textContent=fmt(S.T,1)+" °C";
+  $("rGrad").textContent=fmt(S.done?0:g,2)+" °C/s";
+  $("rE").textContent=fmt(p.C*(S.T-p.T0)/1000,2)+" kJ";
+  $("rPu").textContent=fmt(p.eta*p.P,0)+" W";
+  $("rPl").textContent=fmt(Pl,1)+" W";
+}
+
+// ---- grafico ----
+function drawChart(){
+  const cv=$("chart"), dpr=window.devicePixelRatio||1;
+  const W=cv.clientWidth, Hh=cv.clientHeight;
+  cv.width=W*dpr; cv.height=Hh*dpr;
+  const x=cv.getContext("2d"); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,W,Hh);
+  const L=48,R=12,T=12,B=34, pw=W-L-R, ph=Hh-T-B;
+  const tmax=Math.max(p.tIdeal*1.15, S.t*1.08, 1);
+  const ymin=Math.min(p.T0,p.real?p.Ta:p.T0)-5;
+  let ymax=Math.max(p.Tf, S.T)*1.0; ymax=ymax+(ymax-ymin)*0.1;
+  const X=t=>L+t/tmax*pw, Y=v=>T+ph-(v-ymin)/(ymax-ymin)*ph;
+  const nice=(span,n)=>{const r=span/n, e=10**Math.floor(Math.log10(r)); const m=r/e; return (m<1.5?1:m<3.5?2:m<7.5?5:10)*e;};
+  x.font="11px system-ui"; x.fillStyle="#6b6f76"; x.strokeStyle="#e6dfd1"; x.lineWidth=1;
+  const sx=nice(tmax,6); for(let t=0;t<=tmax+1e-9;t+=sx){x.beginPath();x.moveTo(X(t),T);x.lineTo(X(t),T+ph);x.stroke();x.textAlign="center";x.fillText(fmt(t,sx<1?1:0),X(t),T+ph+14);}
+  const sy=nice(ymax-ymin,5); for(let v=Math.ceil(ymin/sy)*sy;v<=ymax;v+=sy){x.beginPath();x.moveTo(L,Y(v));x.lineTo(L+pw,Y(v));x.stroke();x.textAlign="right";x.fillText(fmt(v,0),L-6,Y(v)+4);}
+  x.textAlign="center"; x.fillText("t (s)",L+pw/2,Hh-4);
+  x.save();x.translate(12,T+ph/2);x.rotate(-Math.PI/2);x.fillText("T (°C)",0,0);x.restore();
+  // T finale
+  x.strokeStyle="#2e7d4f"; x.lineWidth=1.5; x.beginPath(); x.moveTo(L,Y(p.Tf)); x.lineTo(L+pw,Y(p.Tf)); x.stroke();
+  // equilibrio
+  if(p.real && isFinite(p.Teq) && p.Teq<ymax){x.setLineDash([2,4]);x.strokeStyle="#b3261e";x.beginPath();x.moveTo(L,Y(p.Teq));x.lineTo(L+pw,Y(p.Teq));x.stroke();x.setLineDash([]);x.fillStyle="#b3261e";x.textAlign="left";x.fillText("equilibrio",L+4,Y(p.Teq)-4);}
+  // retta ideale
+  x.setLineDash([6,4]); x.strokeStyle="#1f6f8b"; x.lineWidth=1.5; x.beginPath(); x.moveTo(X(0),Y(p.T0)); x.lineTo(X(p.tIdeal),Y(p.Tf)); x.stroke(); x.setLineDash([]);
+  // curva simulata
+  x.strokeStyle="#b5541c"; x.lineWidth=2.5; x.beginPath();
+  S.pts.forEach((q,i)=>{const px=X(q[0]),py=Y(q[1]); i?x.lineTo(px,py):x.moveTo(px,py);});
+  x.lineTo(X(S.t),Y(S.T)); x.stroke();
+  x.fillStyle="#b5541c"; x.beginPath(); x.arc(X(S.t),Y(S.T),4,0,7); x.fill();
+}
+window.addEventListener("resize",drawChart);
+
+params(); resetSim();
+</script>
+</body>
+</html>

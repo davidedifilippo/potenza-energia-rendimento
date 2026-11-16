@@ -12,6 +12,7 @@ Simulazioni didattiche per la lezione sul rendimento del motore in c.c.
 | `index.html` | Pagina iniziale con i collegamenti |
 | `sollevamento-massa.html` | Animazione: il motore solleva una massa partendo da ferma |
 | `avviamento-motore.html` | Esercizio: dati di targa, calcoli dello studente, curve di avviamento |
+| `riscaldamento-lingotto.html` | Simulatore: riscaldamento di un lingotto, caso ideale e reale con perdite |
 
 Ogni pagina è un unico file HTML, senza dipendenze da installare: basta aprirla in un browser.
 
