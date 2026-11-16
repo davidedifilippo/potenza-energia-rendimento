@@ -207,7 +207,7 @@ footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);marg
     <div class="card theory">
       <h2>Il modello</h2>
       <p><b>Grandezze elettriche.</b> La resistenza è un carico puramente resistivo alimentato dalla rete:</p>
-      <div class="f">I = P / V &nbsp;&nbsp;&nbsp; R = V² / P &nbsp;&nbsp;&nbsp; E [kWh] = P [kW] · t [h] &nbsp;&nbsp;&nbsp; Costo = E · prezzo</div>
+      <div class="f">I = P / V &nbsp;&nbsp;&nbsp; R = V / I &nbsp;&nbsp;&nbsp; E [kWh] = P [kW] · t [h] &nbsp;&nbsp;&nbsp; Costo = E · prezzo</div>
       <p><b>Caso ideale.</b> Un litro d'acqua ha massa 1 kg e c = 4186 J/(kg·°C). Tutta l'energia elettrica va nell'acqua:</p>
       <div class="f">T(t) = T₀ + P·t / (m·c) &nbsp;&nbsp;⇒&nbsp;&nbsp; t = m·c·(T_f − T₀) / P</div>
       <p>Ricorda: 1 kWh = 3,6 MJ, quindi per scaldare l'acqua servono m·c·ΔT / 3 600 000 kWh, indipendentemente dalla potenza. Una resistenza più potente scalda <i>prima</i>, ma consuma la stessa energia.</p>
@@ -242,11 +242,11 @@ function params(){
   p.real=mode==="real"; p.hold=endMode==="hold";
   p.eta=p.real?(+$("eta").value)/100:1; p.UA=p.real?+$("UA").value:0; p.Ta=+$("Ta").value;
   p.hyst=+$("hyst").value;
-  p.C=p.m*CW; p.I=p.P/p.V; p.R=p.V*p.V/p.P;
+  p.C=p.m*CW; p.I=p.P/p.V; p.R=p.V/p.I;
   p.tIdeal=p.C*(p.Tf-p.T0)/p.P; p.Eideal=p.C*(p.Tf-p.T0)/3.6e6;
   p.Teq=p.UA>0? p.Ta+p.eta*p.P/p.UA : Infinity;
   p.tEnd=p.hold?24*3600:Infinity;
-  let h=`I = P/V = <b>${fmt(p.I,2)} A</b> &nbsp; R = V²/P = <b>${fmt(p.R,1)} Ω</b><br>
+  let h=`I = P/V = <b>${fmt(p.I,2)} A</b> &nbsp; R = V/I = <b>${fmt(p.R,1)} Ω</b><br>
   m·c = ${fmt(p.m,0)} kg · 4186 = <b>${fmt(p.C/1000,1)} kJ/°C</b><br>
   Gradiente ideale = <b>${fmt(p.P/p.C*60,3)} °C/min</b><br>
   Tempo ideale = <b>${hm(p.tIdeal)}</b> (${fmt(p.tIdeal,0)} s)<br>
