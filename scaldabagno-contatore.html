@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<!-- Materiale didattico di Prof. Di Filippo Davide (STA). Autore: Prof. Di Filippo Davide.
+     Codice: GNU GPL v3 o successiva (SPDX: GPL-3.0-or-later), vedi LICENSE.
+     Contenuti didattici: CC BY-SA 4.0, vedi LICENSE-CONTENUTI.
+     Termine aggiuntivo (GPLv3, sez. 7b): le versioni modificate devono mantenere visibile
+     nella pagina la dicitura "Autore originale: Prof. Di Filippo Davide". -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Prof. Di Filippo Davide">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulatore scaldabagno elettrico e contatore</title>
+<style>
+:root{--bg:#eef2f4;--card:#fff;--ink:#1d2329;--muted:#66707a;--line:#d7dee3;--hot:#c2410c;--cold:#1d6fa5;--ok:#2e7d4f;--warn:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:18px 20px 6px}
+h1{font-size:1.35rem;margin:0 0 2px}
+header p{margin:0;color:var(--muted);font-size:.9rem}
+.wrap{display:grid;grid-template-columns:330px 1fr;gap:16px;padding:12px 20px 24px;max-width:1350px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr;padding:10px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:7px 0;font-size:.9rem}
+label small{color:var(--muted)}
+input[type=number],select{width:120px;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:#fff;font:inherit;font-size:.9rem}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:6px 0 10px}
+.seg button{flex:1;border:0;background:#fff;padding:7px 4px;font:inherit;font-size:.85rem;cursor:pointer;color:var(--ink)}
+.seg button.on{background:var(--ink);color:#fff}
+.sub{border-top:1px dashed var(--line);margin-top:10px;padding-top:6px}
+.sub.off{opacity:.4;pointer-events:none}
+.calc{font-size:.85rem;background:#f3f6f8;border-radius:8px;padding:8px 10px;margin-top:10px}
+.calc b{color:var(--hot)}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+.btn{border:0;border-radius:8px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--hot);color:#fff}
+.btn.sec{background:#e3e9ed;color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default}
+.main{display:grid;gap:16px;min-width:0}
+.top{display:grid;grid-template-columns:1.15fr 1fr;gap:16px}
+@media(max-width:1150px){.top{grid-template-columns:1fr}}
+svg#scene{width:100%;height:auto;display:block;background:linear-gradient(#f7f9fa,#e4eaee);border-radius:10px}
+.readouts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ro{background:#f3f6f8;border-radius:8px;padding:7px 9px}
+.ro .k{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ro .v{font-size:1.05rem;font-weight:650;font-variant-numeric:tabular-nums}
+#status{margin-top:10px;font-size:.9rem;padding:8px 10px;border-radius:8px;background:#e8f1f7;color:var(--cold)}
+#status.done{background:#e8f3ec;color:var(--ok)}
+#status.warn{background:#fbeceb;color:var(--warn)}
+canvas{width:100%;height:300px;display:block}
+.legend{display:flex;gap:14px;font-size:.8rem;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px}
+.tbl{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.85rem;font-variant-numeric:tabular-nums}
+th,td{padding:5px 9px;text-align:right;border-bottom:1px solid #edf1f3;white-space:nowrap}
+th{position:sticky;top:0;background:#e9eef1;font-weight:600;font-size:.78rem}
+tr.ev td{background:#fff4e8;font-weight:650}
+td.on{color:var(--hot);font-weight:600} td.off{color:var(--muted)}
+.theory{font-size:.9rem}
+.f{font-family:"Cambria Math",Georgia,serif;background:#f3f6f8;border-left:3px solid var(--hot);padding:6px 10px;margin:6px 0;border-radius:0 6px 6px 0}
+.f.r{border-color:var(--cold)}
+footer{color:var(--muted);font-size:.86rem;border-top:1px solid var(--line);margin:0 20px 24px;padding-top:10px;max-width:1310px}
+.byline{font-size:.82rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--cold);margin-bottom:2px}
+#copied{font-size:.8rem;color:var(--ok)}
+</style>
+</head>
+<body>
+<header>
+  <div class="byline">Prof. Di Filippo Davide · STA</div>
+  <h1>Scaldabagno elettrico e contatore di casa</h1>
+  <p>Riscaldamento dell'acqua · energia in kWh · costo in bolletta · termostato e dispersioni</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Scaldabagno</h2>
+    <label><span>Potenza resistenza P <small>(W)</small></span><input id="P" type="number" value="2000" min="100" step="100"></label>
+    <label><span>Tensione di rete <small>(V)</small></span><input id="V" type="number" value="230" step="10"></label>
+    <label><span>Capacità <small>(litri)</small></span><input id="L" type="number" value="100" min="5" step="10"></label>
+    <label><span>T acqua iniziale <small>(°C)</small></span><input id="T0" type="number" value="15"></label>
+    <label><span>T termostato <small>(°C)</small></span><input id="Tf" type="number" value="60" step="5"></label>
+
+    <h2 style="margin-top:14px">Bolletta</h2>
+    <label><span>Prezzo energia <small>(€/kWh)</small></span><input id="price" type="number" value="0.25" step="0.01" min="0"></label>
+
+    <h2 style="margin-top:14px">Simulazione</h2>
+    <div class="seg" id="segMode">
+      <button data-v="ideal" class="on">Ideale</button>
+      <button data-v="real">Reale (con perdite)</button>
+    </div>
+    <div class="seg" id="segEnd">
+      <button data-v="stop" class="on">Ferma a T termostato</button>
+      <button data-v="hold">Mantieni 24 h</button>
+    </div>
+    <label><span>Passo tabella</span>
+      <select id="step"><option value="10">10 s</option><option value="60">1 min</option><option value="300" selected>5 min</option><option value="600">10 min</option><option value="1800">30 min</option></select></label>
+    <label><span>Velocità</span>
+      <select id="speed"><option value="1">×1 (reale)</option><option value="60">×60 (1 min/s)</option><option value="300" selected>×300 (5 min/s)</option><option value="900">×900</option><option value="3600">×3600 (1 h/s)</option></select></label>
+
+    <div class="sub off" id="realBox">
+      <label><span>Rendimento η <small>(%)</small></span><input id="eta" type="number" value="98" min="1" max="100"></label>
+      <label><span>Dispersione U·A <small>(W/°C)</small></span><input id="UA" type="number" value="1.3" step="0.1" min="0"></label>
+      <label><span>T locale <small>(°C)</small></span><input id="Ta" type="number" value="18"></label>
+    </div>
+    <div class="sub off" id="holdBox">
+      <label><span>Isteresi termostato <small>(°C)</small></span><input id="hyst" type="number" value="4" min="0.5" step="0.5"></label>
+    </div>
+
+    <div class="calc" id="calc"></div>
+
+    <div class="btns">
+      <button class="btn primary" id="go">▶ Avvia</button>
+      <button class="btn sec" id="reset">↺ Reset</button>
+      <button class="btn sec" id="csv">Copia tabella</button><span id="copied"></span>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="top">
+      <div class="card">
+        <h2>Animazione</h2>
+        <svg id="scene" viewBox="0 0 460 330" aria-label="Scaldabagno e contatore">
+          <defs>
+            <linearGradient id="tankShade" x1="0" x2="1">
+              <stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity=".22"/>
+            </linearGradient>
+            <clipPath id="tankClip"><rect x="64" y="46" width="112" height="226" rx="50"/></clipPath>
+          </defs>
+
+          <!-- rete e cavi -->
+          <rect x="400" y="290" width="40" height="28" rx="4" fill="#cfd6db"/><text x="420" y="308" text-anchor="middle" font-size="10" fill="#555" font-family="system-ui">rete</text>
+          <path id="wire1" d="M420 290 V250 H360" stroke="#7b8790" stroke-width="3" fill="none"/>
+          <path id="wire2" d="M260 230 H200 V270 H176" stroke="#7b8790" stroke-width="3" fill="none"/>
+          <path id="flow" d="M420 290 V250 H360 M260 230 H200 V270 H176" stroke="#f59e0b" stroke-width="3" fill="none" stroke-dasharray="6 10" opacity="0"/>
+
+          <!-- serbatoio -->
+          <rect x="56" y="38" width="128" height="242" rx="58" fill="#f4f6f7" stroke="#aab4bb" stroke-width="2"/>
+          <g clip-path="url(#tankClip)">
+            <rect id="water" x="64" y="46" width="112" height="226" fill="#3b82c4"/>
+            <rect id="waterTop" x="64" y="46" width="112" height="0" fill="#e44"/>
+            <rect x="64" y="46" width="112" height="226" fill="url(#tankShade)"/>
+          </g>
+          <!-- resistenza -->
+          <path id="heater" d="M86 258 h60 q8 0 8 -6 q0 -6 -8 -6 h-56 q-8 0 -8 -6 q0 -6 8 -6 h56" stroke="#6b3b2a" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <!-- tubi -->
+          <path d="M96 280 v24 M144 280 v24" stroke="#9aa5ad" stroke-width="6"/>
+          <text x="96" y="318" text-anchor="middle" font-size="9" fill="#1d6fa5" font-family="system-ui">fredda</text>
+          <text x="144" y="318" text-anchor="middle" font-size="9" fill="#c2410c" font-family="system-ui">calda</text>
+          <text x="120" y="30" text-anchor="middle" font-size="12" fill="#555" font-family="system-ui" id="tCap">100 L · 2000 W</text>
+
+          <!-- termometro -->
+          <rect x="12" y="60" width="14" height="190" rx="7" fill="#fff" stroke="#aab4bb"/>
+          <rect id="thBar" x="16" y="240" width="6" height="10" rx="3" fill="#d33"/>
+          <circle cx="19" cy="256" r="10" fill="#d33"/>
+          <line id="thSet" x1="8" x2="32" stroke="#2e7d4f" stroke-width="2"/>
+          <!-- etichetta T -->
+          <rect x="192" y="40" width="110" height="42" rx="8" fill="#1d2329"/>
+          <text id="tLabel" x="247" y="69" text-anchor="middle" fill="#fff" font-size="20" font-weight="700" font-family="system-ui">15,0 °C</text>
+          <line x1="192" y1="62" x2="170" y2="100" stroke="#555"/>
+          <text x="192" y="100" font-size="11" fill="#555" font-family="system-ui" id="tState">resistenza spenta</text>
+          <text x="192" y="116" font-size="11" fill="#888" font-family="system-ui" id="tClock">t = 0:00:00</text>
+
+          <!-- contatore -->
+          <g transform="translate(260,150)">
+            <rect width="190" height="122" rx="10" fill="#e9ecee" stroke="#9aa5ad" stroke-width="2"/>
+            <text x="12" y="18" font-size="10" fill="#555" font-family="system-ui">CONTATORE ELETTRONICO</text>
+            <rect x="12" y="26" width="166" height="40" rx="4" fill="#1b2a22"/>
+            <text id="mKwh" x="170" y="54" text-anchor="end" font-size="22" fill="#8ff0a4" font-family="ui-monospace,Menlo,Consolas,monospace">00000,000</text>
+            <text x="20" y="40" font-size="8" fill="#8ff0a4" font-family="system-ui" opacity=".7">A+ kWh</text>
+            <text id="mPow" x="12" y="84" font-size="11" fill="#333" font-family="ui-monospace,Menlo,monospace">P = 0 W</text>
+            <text id="mCost" x="12" y="100" font-size="13" font-weight="700" fill="#1d2329" font-family="system-ui">€ 0,00</text>
+            <circle id="led" cx="168" cy="88" r="6" fill="#5a1d1d"/>
+            <text x="168" y="108" text-anchor="middle" font-size="7" fill="#555" font-family="system-ui">1000 imp/kWh</text>
+            <text id="mI" x="12" y="114" font-size="10" fill="#555" font-family="ui-monospace,Menlo,monospace">I = 0,0 A</text>
+          </g>
+        </svg>
+        <div class="readouts">
+          <div class="ro"><div class="k">Tempo</div><div class="v" id="rT">0:00:00</div></div>
+          <div class="ro"><div class="k">Temperatura</div><div class="v" id="rTemp">15 °C</div></div>
+          <div class="ro"><div class="k">Gradiente</div><div class="v" id="rGrad">0 °C/min</div></div>
+          <div class="ro"><div class="k">Energia contatore</div><div class="v" id="rE">0 kWh</div></div>
+          <div class="ro"><div class="k">Costo</div><div class="v" id="rC">€ 0,00</div></div>
+          <div class="ro"><div class="k">P dispersa</div><div class="v" id="rPl">0 W</div></div>
+        </div>
+        <div id="status">Imposta i parametri e premi Avvia.</div>
+      </div>
+
+      <div class="card">
+        <h2>Temperatura ed energia nel tempo</h2>
+        <canvas id="chart"></canvas>
+        <div class="legend">
+          <span><i style="background:#c2410c"></i>T acqua (asse sinistro)</span>
+          <span><i style="background:repeating-linear-gradient(90deg,#c2410c 0 5px,transparent 5px 9px)"></i>T ideale</span>
+          <span><i style="background:#1d6fa5"></i>kWh contatore (asse destro)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tabella dei valori</h2>
+      <div class="tbl"><table>
+        <thead><tr><th>t (h:mm:ss)</th><th>Resistenza</th><th>E contatore (kWh)</th><th>E dispersa (kWh)</th><th>E nell'acqua (kWh)</th><th>T (°C)</th><th>ΔT/Δt (°C/min)</th><th>Costo (€)</th></tr></thead>
+        <tbody id="tb"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card theory">
+      <h2>Il modello</h2>
+      <p><b>Grandezze elettriche.</b> La resistenza è un carico puramente resistivo alimentato dalla rete:</p>
+      <div class="f">I = P / V &nbsp;&nbsp;&nbsp; R = V² / P &nbsp;&nbsp;&nbsp; E [kWh] = P [kW] · t [h] &nbsp;&nbsp;&nbsp; Costo = E · prezzo</div>
+      <p><b>Caso ideale.</b> Un litro d'acqua ha massa 1 kg e c = 4186 J/(kg·°C). Tutta l'energia elettrica va nell'acqua:</p>
+      <div class="f">T(t) = T₀ + P·t / (m·c) &nbsp;&nbsp;⇒&nbsp;&nbsp; t = m·c·(T_f − T₀) / P</div>
+      <p>Ricorda: 1 kWh = 3,6 MJ, quindi per scaldare l'acqua servono m·c·ΔT / 3 600 000 kWh, indipendentemente dalla potenza. Una resistenza più potente scalda <i>prima</i>, ma consuma la stessa energia.</p>
+      <p><b>Caso reale.</b> Una piccola parte di energia non arriva all'acqua (η) e il serbatoio cede calore al locale attraverso l'isolamento, con coefficiente globale U·A:</p>
+      <div class="f r">m·c · dT/dt = η·P·s − U·A·(T − T_locale) &nbsp;&nbsp;(s = 1 resistenza accesa, 0 spenta)</div>
+      <p>Con <b>Mantieni 24 h</b> il termostato spegne la resistenza a T termostato e la riaccende quando l'acqua scende di un valore pari all'isteresi: il contatore continua a girare anche senza prelevare acqua calda. Queste sono le perdite di mantenimento. Il valore predefinito U·A = 1,3 W/°C corrisponde a circa 1,4 kWh al giorno a 60 °C, tipico di un buon 100 L.</p>
+    </div>
+  </div>
+</div>
+<footer>© 2026 Prof. Di Filippo Davide. Materiale didattico per le classi di STA. Codice GPLv3, contenuti CC BY-SA 4.0.</footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const CW=4186;
+let mode="ideal", endMode="stop";
+const fmt=(x,d=1)=>Number(x).toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});
+function hms(s){s=Math.round(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;return `${h}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;}
+function hm(s){const h=Math.floor(s/3600),m=Math.round(s%3600/60);return h?`${h} h ${m} min`:`${m} min`;}
+
+function seg(id,cb){$(id).querySelectorAll("button").forEach(b=>b.onclick=()=>{
+  if(S.running) return;
+  $(id).querySelectorAll("button").forEach(x=>x.classList.remove("on")); b.classList.add("on"); cb(b.dataset.v);});}
+seg("segMode",v=>{mode=v;$("realBox").classList.toggle("off",v!=="real");params();resetSim();});
+seg("segEnd",v=>{endMode=v;$("holdBox").classList.toggle("off",v!=="hold");params();resetSim();});
+["P","V","L","T0","Tf","price","eta","UA","Ta","hyst"].forEach(id=>$(id).addEventListener("input",()=>{if(!S.running){params();resetSim();}}));
+$("step").onchange=()=>{if(!S.running)resetSim();};
+
+let p={};
+function params(){
+  p.P=+$("P").value; p.V=+$("V").value; p.L=+$("L").value; p.m=p.L;
+  p.T0=+$("T0").value; p.Tf=+$("Tf").value; p.price=+$("price").value;
+  p.real=mode==="real"; p.hold=endMode==="hold";
+  p.eta=p.real?(+$("eta").value)/100:1; p.UA=p.real?+$("UA").value:0; p.Ta=+$("Ta").value;
+  p.hyst=+$("hyst").value;
+  p.C=p.m*CW; p.I=p.P/p.V; p.R=p.V*p.V/p.P;
+  p.tIdeal=p.C*(p.Tf-p.T0)/p.P; p.Eideal=p.C*(p.Tf-p.T0)/3.6e6;
+  p.Teq=p.UA>0? p.Ta+p.eta*p.P/p.UA : Infinity;
+  p.tEnd=p.hold?24*3600:Infinity;
+  let h=`I = P/V = <b>${fmt(p.I,2)} A</b> &nbsp; R = V²/P = <b>${fmt(p.R,1)} Ω</b><br>
+  m·c = ${fmt(p.m,0)} kg · 4186 = <b>${fmt(p.C/1000,1)} kJ/°C</b><br>
+  Gradiente ideale = <b>${fmt(p.P/p.C*60,3)} °C/min</b><br>
+  Tempo ideale = <b>${hm(p.tIdeal)}</b> (${fmt(p.tIdeal,0)} s)<br>
+  Energia ideale = <b>${fmt(p.Eideal,3)} kWh</b> → <b>€ ${fmt(p.Eideal*p.price,2)}</b>`;
+  if(p.real) h+=`<br>Dispersione a T termostato ≈ <b>${fmt(p.UA*(p.Tf-p.Ta),0)} W</b>`+(p.Teq<p.Tf?` <span style="color:var(--warn)">T termostato non raggiungibile (equilibrio ${fmt(p.Teq,1)} °C)</span>`:"");
+  if(p.Tf>95) h+=`<br><span style="color:var(--warn)">Oltre 95 °C l'acqua è vicina all'ebollizione: il modello non ne tiene conto.</span>`;
+  $("calc").innerHTML=h;
+  $("tCap").textContent=`${p.L} L · ${p.P} W · ${p.V} V`;
+}
+
+const S={};
+function resetSim(){
+  Object.assign(S,{running:false,done:false,t:0,T:p.T0,Eel:0,Ewat:0,Eloss:0,on:true,reached:false,nextRow:0,last:null,pts:[[0,p.T0,0]],lastFrame:null,ledUntil:0,lastImp:0});
+  S.dtRow=+$("step").value;
+  $("tb").innerHTML=""; addRow();
+  $("go").textContent="▶ Avvia"; $("go").disabled=false;
+  setStatus("Imposta i parametri e premi Avvia.","");
+  draw(); drawChart();
+}
+function addRow(ev,schedule=true){
+  let g="—"; if(S.last&&S.t>S.last.t) g=fmt((S.T-S.last.T)/(S.t-S.last.t)*60,3);
+  const kwh=S.Eel/3.6e6;
+  const tr=document.createElement("tr"); if(ev) tr.className="ev";
+  tr.innerHTML=`<td>${hms(S.t)}</td><td class="${S.on?"on":"off"}">${S.on?"ON":"OFF"}</td><td>${fmt(kwh,3)}</td><td>${fmt(S.Eloss/3.6e6,3)}</td><td>${fmt(S.Ewat/3.6e6,3)}</td><td>${fmt(S.T,2)}</td><td>${g}</td><td>${fmt(kwh*p.price,3)}</td>`;
+  if(ev) tr.title=ev;
+  $("tb").appendChild(tr);
+  const box=$("tb").parentElement.parentElement; box.scrollTop=box.scrollHeight;
+  S.last={t:S.t,T:S.T};
+  if(schedule) S.nextRow+=S.dtRow;
+}
+function setStatus(m,c){const s=$("status");s.textContent=m;s.className=c||"";}
+
+const H=0.5;
+function stepTo(h,s){ // integra h secondi con stato resistenza s
+  const Pel=s?p.P:0, Pu=p.eta*Pel, Pl=p.UA*(S.T-p.Ta);
+  S.T+=(Pu-Pl)/p.C*h; S.t+=h; S.Eel+=Pel*h; S.Ewat+=(Pu-Pl)*h; S.Eloss+=(Pel-Pu+Pl)*h;
+}
+function advance(dt){
+  let rem=dt;
+  while(rem>1e-9&&!S.done){
+    let h=Math.min(H,rem,S.nextRow-S.t,p.tEnd-S.t);
+    if(h<=1e-9){
+      if(S.t>=p.tEnd-1e-9){finish(`24 ore simulate: contatore ${fmt(S.Eel/3.6e6,3)} kWh, costo € ${fmt(S.Eel/3.6e6*p.price,2)}.`,"done");return;}
+      addRow(); continue;
+    }
+    const dTdt=((S.on?p.eta*p.P:0)-p.UA*(S.T-p.Ta))/p.C;
+    // raggiungimento della T termostato dentro il passo
+    if(S.on && dTdt>0 && S.T+dTdt*h>=p.Tf){
+      const hh=(p.Tf-S.T)/dTdt; stepTo(hh,true); rem-=hh; S.T=p.Tf;
+      if(!p.hold){S.on=false; finish(`Acqua a ${fmt(p.Tf,0)} °C in ${hm(S.t)}: ${fmt(S.Eel/3.6e6,3)} kWh, € ${fmt(S.Eel/3.6e6*p.price,2)}`+(p.real?` (ideale: ${hm(p.tIdeal)}, ${fmt(p.Eideal,3)} kWh).`:"."),"done");return;}
+      S.on=false; const first=!S.reached; S.reached=true;
+      addRow(first?"T termostato raggiunta":"termostato OFF",false);
+      if(first) setStatus(`Prima carica completata in ${hm(S.t)} (${fmt(S.Eel/3.6e6,3)} kWh). Ora il termostato mantiene la temperatura.`,"");
+      continue;
+    }
+    if(!S.on && p.hold && S.T-dTdt*0<=p.Tf-p.hyst){ S.on=true; addRow("termostato ON",false); continue; }
+    stepTo(h,S.on); rem-=h;
+    if(p.real && S.on && p.Teq<p.Tf && S.T>=p.Teq-0.05){finish(`Equilibrio a ${fmt(p.Teq,1)} °C: la dispersione eguaglia la potenza utile.`,"warn");return;}
+    if(Math.abs(S.t-S.nextRow)<1e-6) addRow();
+  }
+}
+function finish(m,c){S.done=true;S.running=false;addRow("fine",false);$("go").textContent="▶ Avvia";$("go").disabled=true;setStatus(m,c);draw();}
+
+function loop(ts){
+  if(!S.running){S.lastFrame=null;return;}
+  if(S.lastFrame==null)S.lastFrame=ts;
+  const real=Math.min((ts-S.lastFrame)/1000,0.1);S.lastFrame=ts;
+  const prevWh=Math.floor(S.Eel/3600);
+  advance(real*(+$("speed").value));
+  if(Math.floor(S.Eel/3600)>prevWh) S.ledUntil=ts+70;
+  const lp=S.pts[S.pts.length-1];
+  if(S.t-lp[0]>20||S.done) S.pts.push([S.t,S.T,S.Eel/3.6e6]);
+  draw(ts); drawChart();
+  requestAnimationFrame(loop);
+}
+$("go").onclick=()=>{
+  if(S.done)return;
+  if(S.running){S.running=false;$("go").textContent="▶ Riprendi";setStatus("In pausa.","");draw();return;}
+  S.running=true;$("go").textContent="❚❚ Pausa";setStatus("Riscaldamento in corso…","");requestAnimationFrame(loop);
+};
+$("reset").onclick=()=>{params();resetSim();};
+$("csv").onclick=async()=>{
+  const rows=[["t","Resistenza","E contatore (kWh)","E dispersa (kWh)","E acqua (kWh)","T (°C)","DT/Dt (°C/min)","Costo (€)"]];
+  $("tb").querySelectorAll("tr").forEach(tr=>rows.push([...tr.children].map(td=>td.textContent.replace(/\./g,""))));
+  try{await navigator.clipboard.writeText(rows.map(r=>r.join(";")).join("\n"));$("copied").textContent="Copiata ✓";}
+  catch(e){$("copied").textContent="Copia non consentita";}
+  setTimeout(()=>$("copied").textContent="",2000);
+};
+
+// colore acqua: blu (10 °C) → viola → rosso (90 °C)
+function waterColor(T){
+  const st=[[10,[47,120,196]],[35,[96,110,190]],[55,[190,80,120]],[75,[220,60,50]],[95,[200,30,20]]];
+  if(T<=st[0][0])return st[0][1];
+  for(let i=1;i<st.length;i++)if(T<=st[i][0]){const f=(T-st[i-1][0])/(st[i][0]-st[i-1][0]);return st[i-1][1].map((v,k)=>Math.round(v+(st[i][1][k]-v)*f));}
+  return st[st.length-1][1];
+}
+const thY=T=>250-Math.max(0,Math.min(100,T))/100*186;
+function draw(ts){
+  ts=ts||performance.now();
+  const c=waterColor(S.T), on=S.running&&S.on;
+  $("water").setAttribute("fill",`rgb(${c})`);
+  // stratificazione: strato superiore leggermente più caldo mentre scalda
+  const top=on?Math.min(60,10+S.t/60):0;
+  $("waterTop").setAttribute("height",top);
+  $("waterTop").setAttribute("fill",`rgb(${waterColor(S.T+3)})`);
+  $("heater").setAttribute("stroke",on?"#ff5a1f":"#6b3b2a");
+  $("heater").style.filter=on?"drop-shadow(0 0 4px #ff7a20)":"none";
+  $("flow").setAttribute("opacity",on?1:0);
+  $("flow").setAttribute("stroke-dashoffset",-(ts/25)%16);
+  const y=thY(S.T); $("thBar").setAttribute("y",y); $("thBar").setAttribute("height",250-y);
+  $("thSet").setAttribute("y1",thY(p.Tf)); $("thSet").setAttribute("y2",thY(p.Tf));
+  $("tLabel").textContent=fmt(S.T,1)+" °C";
+  $("tState").textContent=S.on&&!S.done?(S.running?"resistenza accesa":"resistenza pronta"):"resistenza spenta (termostato)";
+  $("tClock").textContent="t = "+hms(S.t);
+  const kwh=S.Eel/3.6e6;
+  const parts=kwh.toFixed(3).split("."); $("mKwh").textContent=parts[0].padStart(5,"0")+","+parts[1];
+  $("mPow").textContent="P = "+(on?p.P:0)+" W";
+  $("mI").textContent="I = "+fmt(on?p.I:0,1)+" A";
+  $("mCost").textContent="€ "+fmt(kwh*p.price,2);
+  $("led").setAttribute("fill",ts<S.ledUntil||(on&&+$("speed").value>=300)?"#ff3b3b":"#5a1d1d");
+  const Pl=p.UA*(S.T-p.Ta), g=((on?p.eta*p.P:0)-Pl)/p.C*60;
+  $("rT").textContent=hms(S.t); $("rTemp").textContent=fmt(S.T,1)+" °C";
+  $("rGrad").textContent=fmt(S.running?g:0,3)+" °C/min";
+  $("rE").textContent=fmt(kwh,3)+" kWh"; $("rC").textContent="€ "+fmt(kwh*p.price,2);
+  $("rPl").textContent=fmt(Math.max(0,Pl)+(on?(1-p.eta)*p.P:0),0)+" W";
+}
+
+function drawChart(){
+  const cv=$("chart"),dpr=window.devicePixelRatio||1,W=cv.clientWidth,Hh=cv.clientHeight;
+  cv.width=W*dpr;cv.height=Hh*dpr;const x=cv.getContext("2d");x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,W,Hh);
+  const L=44,R=48,T=12,B=34,pw=W-L-R,ph=Hh-T-B;
+  const tmaxS=Math.max(p.hold?Math.max(p.tIdeal*1.15,S.t*1.05):p.tIdeal*1.15,S.t*1.05,60);
+  const useH=tmaxS>3*3600, unit=useH?3600:60, tmax=tmaxS/unit;
+  const ymin=Math.min(p.T0,p.real?p.Ta:p.T0)-3, ymax=Math.max(p.Tf,S.T)+8;
+  const emax=Math.max(p.Eideal*1.15,S.Eel/3.6e6*1.1,0.1);
+  const X=t=>L+t/unit/tmax*pw,Y=v=>T+ph-(v-ymin)/(ymax-ymin)*ph,YE=e=>T+ph-e/emax*ph;
+  const nice=(span,n)=>{const r=span/n,e=10**Math.floor(Math.log10(r)),m=r/e;return(m<1.5?1:m<3.5?2:m<7.5?5:10)*e;};
+  x.font="11px system-ui";x.strokeStyle="#e6ebee";x.lineWidth=1;x.fillStyle="#66707a";
+  const sx=nice(tmax,6);for(let t=0;t<=tmax+1e-9;t+=sx){const px=L+t/tmax*pw;x.beginPath();x.moveTo(px,T);x.lineTo(px,T+ph);x.stroke();x.textAlign="center";x.fillText(fmt(t,sx<1?1:0),px,T+ph+14);}
+  const sy=nice(ymax-ymin,5);for(let v=Math.ceil(ymin/sy)*sy;v<=ymax;v+=sy){x.beginPath();x.moveTo(L,Y(v));x.lineTo(L+pw,Y(v));x.stroke();x.textAlign="right";x.fillStyle="#c2410c";x.fillText(fmt(v,0),L-6,Y(v)+4);}
+  const se=nice(emax,5);x.fillStyle="#1d6fa5";x.textAlign="left";for(let e=0;e<=emax;e+=se)x.fillText(fmt(e,se<1?1:0),L+pw+6,YE(e)+4);
+  x.fillStyle="#66707a";x.textAlign="center";x.fillText(useH?"t (h)":"t (min)",L+pw/2,Hh-4);
+  x.save();x.translate(11,T+ph/2);x.rotate(-Math.PI/2);x.fillStyle="#c2410c";x.fillText("T (°C)",0,0);x.restore();
+  x.save();x.translate(W-6,T+ph/2);x.rotate(Math.PI/2);x.fillStyle="#1d6fa5";x.fillText("kWh",0,0);x.restore();
+  x.strokeStyle="#2e7d4f";x.lineWidth=1.2;x.beginPath();x.moveTo(L,Y(p.Tf));x.lineTo(L+pw,Y(p.Tf));x.stroke();
+  x.setLineDash([6,4]);x.strokeStyle="#c2410c";x.lineWidth=1.3;x.beginPath();x.moveTo(X(0),Y(p.T0));x.lineTo(X(p.tIdeal),Y(p.Tf));x.stroke();x.setLineDash([]);
+  x.strokeStyle="#1d6fa5";x.lineWidth=2;x.beginPath();S.pts.forEach((q,i)=>i?x.lineTo(X(q[0]),YE(q[2])):x.moveTo(X(q[0]),YE(q[2])));x.lineTo(X(S.t),YE(S.Eel/3.6e6));x.stroke();
+  x.strokeStyle="#c2410c";x.lineWidth=2.5;x.beginPath();S.pts.forEach((q,i)=>i?x.lineTo(X(q[0]),Y(q[1])):x.moveTo(X(q[0]),Y(q[1])));x.lineTo(X(S.t),Y(S.T));x.stroke();
+  x.fillStyle="#c2410c";x.beginPath();x.arc(X(S.t),Y(S.T),4,0,7);x.fill();
+}
+window.addEventListener("resize",drawChart);
+params();resetSim();
+</script>
+</body>
+</html>
