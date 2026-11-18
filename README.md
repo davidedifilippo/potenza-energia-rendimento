@@ -1,7 +1,7 @@
 # Potenza, energia e rendimento
 
 Simulazioni didattiche sulla potenza elettrica, l'energia e il rendimento:
-il motore in c.c., il riscaldamento di un lingotto, lo scaldabagno e il contatore
+il motore in c.c., il riscaldamento di un lingotto, lo scaldabagno e il contatore, la batteria del camper
 (STA, classe seconda, indirizzo automazione).
 
 **Autore:** Prof. Di Filippo Davide
@@ -15,6 +15,7 @@ il motore in c.c., il riscaldamento di un lingotto, lo scaldabagno e il contator
 | `avviamento-motore.html` | Esercizio: dati di targa, calcoli dello studente, curve di avviamento |
 | `riscaldamento-lingotto.html` | Simulatore: riscaldamento di un lingotto, caso ideale e reale con perdite |
 | `scaldabagno-contatore.html` | Simulatore: scaldabagno elettrico e contatore, energia in kWh e costo in bolletta |
+| `camper_batteria.html` | Animazione: scarica della batteria 12 V / 100 Ah del camper con lampade, frigorifero e pompa |
 
 Ogni pagina è un unico file HTML, senza dipendenze da installare: basta aprirla in un browser.
 

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<!-- Materiale didattico di Prof. Di Filippo Davide (STA). Autore: Prof. Di Filippo Davide.
+     Codice: GNU GPL v3 o successiva (SPDX: GPL-3.0-or-later), vedi LICENSE.
+     Contenuti didattici: CC BY-SA 4.0, vedi LICENSE-CONTENUTI.
+     Termine aggiuntivo (GPLv3, sez. 7b): le versioni modificate devono mantenere visibile
+     nella pagina la dicitura "Autore originale: Prof. Di Filippo Davide". -->
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="author" content="Prof. Di Filippo Davide">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Camper a 12 V – la batteria si scarica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1020; --panel:#121a33; --panel2:#18224a; --line:#26335f; --txt:#e8eeff; --mut:#8c9bc7;
+  --L1:#ffd23f; --L2:#ff9f40; --FR:#3fd0ff; --PO:#b47cff; --BAT:#3ddc84; --red:#ff4d6d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 20% -10%,#1b2a5c 0%,var(--bg) 60%);color:var(--txt);
+  font-family:Rajdhani,system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:1280px;margin:0 auto;padding:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}
+h1{margin:0;font-size:28px;letter-spacing:.5px}
+h1 small{display:block;font-size:15px;color:var(--mut);font-weight:500}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+button,select{font-family:inherit;font-weight:700;font-size:16px;border-radius:10px;border:1px solid var(--line);
+  background:var(--panel2);color:var(--txt);padding:8px 14px;cursor:pointer}
+button.primary{background:linear-gradient(135deg,#2f6bff,#7a4dff);border:none;min-width:110px}
+button:hover{filter:brightness(1.15)}
+label.ctl{color:var(--mut);font-size:14px;display:flex;align-items:center;gap:6px}
+.grid{display:grid;grid-template-columns:1fr 330px;gap:14px}
+@media(max-width:980px){.grid{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,var(--panel),#0f1730);border:1px solid var(--line);border-radius:16px;padding:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.card h2{margin:0 0 8px;font-size:18px;color:var(--mut);text-transform:uppercase;letter-spacing:1.5px}
+svg text{font-family:Rajdhani,sans-serif}
+.mono{font-family:"JetBrains Mono",monospace}
+/* orologio */
+.clock{display:flex;gap:12px;align-items:center}
+.sky{width:86px;height:86px;border-radius:14px;position:relative;overflow:hidden;border:1px solid var(--line);flex:none}
+.sky .orb{position:absolute;width:26px;height:26px;border-radius:50%;left:30px}
+.time{font-size:40px;font-weight:700;line-height:1}
+.day{font-size:18px;color:var(--mut)}
+/* batteria grande */
+.bigbat{display:flex;gap:16px;align-items:center;margin-top:12px}
+.batbody{width:84px;height:170px;border:4px solid #cfd8ff;border-radius:12px;position:relative;padding:5px;flex:none}
+.batbody:before{content:"";position:absolute;top:-14px;left:24px;width:28px;height:10px;background:#cfd8ff;border-radius:4px 4px 0 0}
+.batfill{position:absolute;left:5px;right:5px;bottom:5px;border-radius:6px;transition:background .4s}
+.batfill:after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.08) 0 6px,transparent 6px 22px);border-radius:6px}
+.pct{font-size:48px;font-weight:700;line-height:1}
+.kv{display:flex;justify-content:space-between;font-size:17px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.kv b{font-family:"JetBrains Mono",monospace;font-size:16px}
+.fusebar{height:14px;background:#0a1128;border-radius:8px;position:relative;overflow:hidden;border:1px solid var(--line);margin-top:6px}
+.fusebar i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#3ddc84,#ffd23f,#ff4d6d);transition:width .15s}
+.fusemark{display:flex;justify-content:space-between;font-size:12px;color:var(--mut)}
+/* carichi */
+.loads{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:780px){.loads{grid-template-columns:repeat(2,1fr)}}
+.load{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:10px;position:relative;transition:box-shadow .3s,border-color .3s}
+.load.on{box-shadow:0 0 22px -4px var(--c);border-color:var(--c)}
+.load .nm{font-weight:700;font-size:18px;display:flex;justify-content:space-between;align-items:center}
+.chip{font-size:12px;padding:2px 8px;border-radius:20px;background:#0a1128;color:var(--mut);font-family:"JetBrains Mono",monospace}
+.load.on .chip{background:var(--c);color:#0b1020}
+.wh{font-family:"JetBrains Mono",monospace;font-size:26px;font-weight:700;color:var(--c);margin-top:4px}
+.sub{font-size:14px;color:var(--mut)}
+.bar{height:10px;border-radius:6px;background:#0a1128;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c);width:0;transition:width .2s}
+.sw{margin-top:8px;width:100%;font-size:14px;padding:6px}
+.sw.off{background:#3a1424;border-color:#7a2440;color:#ffb3c3}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:15px;color:var(--mut);margin-top:6px}
+.legend span:before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c);margin-right:6px;vertical-align:-1px}
+canvas{width:100%;display:block}
+.overlay{position:fixed;inset:0;background:rgba(5,8,20,.75);display:none;align-items:center;justify-content:center;z-index:10}
+.overlay.show{display:flex}
+.modal{background:var(--panel);border:2px solid var(--red);border-radius:18px;padding:26px 30px;text-align:center;max-width:460px;
+  box-shadow:0 0 60px -10px var(--red);animation:pop .4s ease}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h3{margin:0 0 6px;font-size:32px;color:var(--red)}
+.note{font-size:14px;color:var(--mut);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>L'impianto a 12 V del camper <small>La batteria si scarica mentre il tempo passa — dove va a finire l'energia? · STA, classe seconda Elettronica · Prof. Di Filippo Davide</small></h1>
+  <div class="controls">
+    <button class="primary" id="play">▶ Avvia</button>
+    <button id="reset">↺ Ricomincia</button>
+    <label class="ctl">Velocità
+      <select id="speed">
+        <option value="5">5 min / s</option>
+        <option value="15">15 min / s</option>
+        <option value="30" selected>30 min / s</option>
+        <option value="60">1 ora / s</option>
+        <option value="120">2 ore / s</option>
+      </select></label>
+    <label class="ctl">Batteria
+      <select id="cap">
+        <option value="50">12 V · 50 Ah</option>
+        <option value="100" selected>12 V · 100 Ah</option>
+        <option value="200">12 V · 200 Ah</option>
+      </select></label>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2>Schema dell'impianto</h2>
+    <svg id="schema" viewBox="0 0 760 370" width="100%">
+      <defs>
+        <radialGradient id="glowY"><stop offset="0" stop-color="#ffe680" stop-opacity=".95"/><stop offset="1" stop-color="#ffd23f" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glowO"><stop offset="0" stop-color="#ffc680" stop-opacity=".95"/><stop offset="1" stop-color="#ff9f40" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glowC"><stop offset="0" stop-color="#9fe9ff" stop-opacity=".8"/><stop offset="1" stop-color="#3fd0ff" stop-opacity="0"/></radialGradient>
+        <radialGradient id="glowP"><stop offset="0" stop-color="#dcc2ff" stop-opacity=".8"/><stop offset="1" stop-color="#b47cff" stop-opacity="0"/></radialGradient>
+      </defs>
+      <g id="wires" stroke="#3a4a80" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+      <g id="flows" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+
+      <!-- batteria -->
+      <g id="batt">
+        <rect x="28" y="108" width="84" height="154" rx="10" fill="#0a1128" stroke="#cfd8ff" stroke-width="3"/>
+        <rect x="56" y="98" width="28" height="10" rx="3" fill="#cfd8ff"/>
+        <rect id="sBatFill" x="34" y="114" width="72" height="142" rx="6" fill="#3ddc84"/>
+        <text x="70" y="132" text-anchor="middle" font-size="22" font-weight="700" fill="#0b1020">+</text>
+        <text x="70" y="254" text-anchor="middle" font-size="24" font-weight="700" fill="#0b1020">−</text>
+        <text id="sBatTxt" x="70" y="192" text-anchor="middle" font-size="22" font-weight="700" fill="#fff" stroke="#0b1020" stroke-width="4" paint-order="stroke">100%</text>
+        <text x="120" y="190" font-size="16" font-weight="700" fill="#8c9bc7">12 V</text>
+      </g>
+      <!-- fusibile -->
+      <g>
+        <rect id="fuse" x="150" y="50" width="62" height="20" rx="4" fill="#18224a" stroke="#cfd8ff" stroke-width="2"/>
+        <line x1="154" y1="60" x2="208" y2="60" stroke="#cfd8ff" stroke-width="1.5"/>
+        <text x="181" y="40" text-anchor="middle" font-size="15" fill="#8c9bc7">Fusibile 10 A</text>
+      </g>
+      <g id="loadsSvg"></g>
+    </svg>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div class="card">
+    <div class="clock">
+      <div class="sky" id="sky"><div class="orb" id="orb"></div></div>
+      <div><div class="day" id="day">Giorno 1</div><div class="time mono" id="time">00:00</div>
+      <div class="sub" id="elapsed">tempo trascorso: 0 h</div></div>
+    </div>
+    <div class="bigbat">
+      <div class="batbody"><div class="batfill" id="batFill"></div></div>
+      <div style="flex:1">
+        <div class="pct mono" id="pct">100%</div>
+        <div class="kv"><span>Energia rimasta</span><b id="whLeft">1200 Wh</b></div>
+        <div class="kv"><span>Carica rimasta</span><b id="ahLeft">100 Ah</b></div>
+        <div class="kv"><span>Energia consumata</span><b id="whUsed">0 Wh</b></div>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="kv"><span>Potenza assorbita ora</span><b id="pNow">0 W</b></div>
+      <div class="kv"><span>Corrente dalla batteria</span><b id="iNow">0 A</b></div>
+      <div class="fusebar"><i id="fuseBar"></i></div>
+      <div class="fusemark"><span>0 A</span><span>corrente sul fusibile</span><span>10 A</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <h2>Energia assorbita da ogni componente</h2>
+  <div class="loads" id="loadCards"></div>
+</div>
+
+<div class="grid" style="margin-top:14px;grid-template-columns:1fr 1fr">
+  <div class="card">
+    <h2>Dove va l'energia della batteria</h2>
+    <canvas id="chart" height="300"></canvas>
+    <div class="legend" id="legend2"></div>
+  </div>
+  <div class="card">
+    <h2>Programma della giornata</h2>
+    <svg id="gantt" viewBox="0 0 560 250" width="100%"></svg>
+    <div class="note">Il frigorifero ha il compressore che si accende e si spegne: lavora 30 minuti ogni ora, cioè 12 ore al giorno.
+    Usa i pulsanti dei componenti per spegnerli e guarda come cambia l'autonomia.</div>
+  </div>
+</div>
+<div class="note" style="text-align:center;margin-top:10px">Ipotesi semplificate, come nell'esercizio: la tensione della batteria resta 12 V fino alla scarica completa e ogni apparecchio assorbe sempre la sua potenza nominale.<br>© Prof. Di Filippo Davide — materiale didattico per STA</div>
+</div>
+
+<div class="overlay" id="ov"><div class="modal">
+  <h3>🔋 Batteria scarica!</h3>
+  <div style="font-size:20px" id="ovTxt"></div>
+  <div class="note" id="ovNote"></div>
+  <button class="primary" style="margin-top:16px" id="ovBtn">Ricomincia</button>
+</div></div>
+
+<script>
+const V = 12;
+const H = h => h*60; // ore -> minuti
+const LOADS = [
+  {id:'L1', name:'Lampada L1', P:6,  c:'var(--L1)', hex:'#ffd23f', x:290, type:'lamp', glow:'glowY',
+   sched:[[H(19),H(24)]], on:tod=>tod>=H(19)},
+  {id:'L2', name:'Lampada L2', P:6,  c:'var(--L2)', hex:'#ff9f40', x:420, type:'lamp', glow:'glowO',
+   sched:[[H(18),H(23)]], on:tod=>tod>=H(18)&&tod<H(23)},
+  {id:'FR', name:'Frigorifero', P:48, c:'var(--FR)', hex:'#3fd0ff', x:550, type:'fridge', glow:'glowC',
+   sched:Array.from({length:24},(_,h)=>[H(h),H(h)+30]), on:tod=>(tod%60)<30},
+  {id:'PO', name:'Pompa acqua', P:36, c:'var(--PO)', hex:'#b47cff', x:680, type:'pump', glow:'glowP',
+   sched:[[450,465],[1200,1215]], on:tod=>(tod>=450&&tod<465)||(tod>=1200&&tod<1215)},
+];
+const fmt = (v,d=0)=>v.toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});
+const $ = id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg';
+const el=(tag,attrs,parent)=>{const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;};
+
+// ---------- stato ----------
+let S;
+function newState(){
+  const capAh=+$('cap').value;
+  return {t:0, capWh:capAh*V, rem:capAh*V, E:[0,0,0,0], Eday:[0,0,0,0], dayIdx:0,
+    enabled:S?S.enabled:[true,true,true,true], running:false, empty:false, samples:[], lastSample:-1, onNow:[0,0,0,0]};
+}
+
+// ---------- schema SVG ----------
+const topY=60, botY=310;
+const wires=$('wires'), flows=$('flows'), loadsSvg=$('loadsSvg');
+const SEG=[];
+function seg(d, fn){ el('path',{d},wires); const p=el('path',{d,stroke:'#5fe3ff','stroke-dasharray':'7 13','stroke-width':3,opacity:0},flows); SEG.push({p,fn,off:0}); }
+const I=k=>S.onNow[k]*LOADS[k].P/V;
+const sumI=ks=>ks.reduce((a,k)=>a+I(k),0);
+seg(`M70,108 L70,${topY} L290,${topY}`, ()=>sumI([0,1,2,3]));
+seg(`M290,${topY} L420,${topY}`, ()=>sumI([1,2,3]));
+seg(`M420,${topY} L550,${topY}`, ()=>sumI([2,3]));
+seg(`M550,${topY} L680,${topY}`, ()=>sumI([3]));
+LOADS.forEach((L,k)=>seg(`M${L.x},${topY} L${L.x},${botY}`, ()=>I(k)));
+seg(`M680,${botY} L550,${botY}`, ()=>sumI([3]));
+seg(`M550,${botY} L420,${botY}`, ()=>sumI([2,3]));
+seg(`M420,${botY} L290,${botY}`, ()=>sumI([1,2,3]));
+seg(`M290,${botY} L70,${botY} L70,262`, ()=>sumI([0,1,2,3]));
+[290,420,550].forEach(x=>{el('circle',{cx:x,cy:topY,r:4.5,fill:'#cfd8ff'},loadsSvg);el('circle',{cx:x,cy:botY,r:4.5,fill:'#cfd8ff'},loadsSvg);});
+
+const VIS=[];
+LOADS.forEach((L,k)=>{
+  const g=el('g',{},loadsSvg), cy=185, v={};
+  v.glow=el('circle',{cx:L.x,cy,r:L.type==='fridge'?62:52,fill:`url(#${L.glow})`,opacity:0},g);
+  if(L.type==='lamp'){
+    v.body=el('circle',{cx:L.x,cy,r:24,fill:'#0a1128',stroke:'#cfd8ff','stroke-width':3},g);
+    el('line',{x1:L.x-17,y1:cy-17,x2:L.x+17,y2:cy+17,stroke:'#cfd8ff','stroke-width':3},g);
+    el('line',{x1:L.x-17,y1:cy+17,x2:L.x+17,y2:cy-17,stroke:'#cfd8ff','stroke-width':3},g);
+  } else if(L.type==='fridge'){
+    v.body=el('rect',{x:L.x-32,y:cy-46,width:64,height:92,rx:8,fill:'#0a1128',stroke:'#cfd8ff','stroke-width':3},g);
+    el('line',{x1:L.x-32,y1:cy-14,x2:L.x+32,y2:cy-14,stroke:'#cfd8ff','stroke-width':2},g);
+    v.snow=el('text',{x:L.x,y:cy+24,'text-anchor':'middle','font-size':30,fill:'#3fd0ff'},g); v.snow.textContent='❄';
+    v.comp=el('text',{x:L.x,y:cy-24,'text-anchor':'middle','font-size':10,fill:'#8c9bc7','font-weight':700},g); v.comp.textContent='COMPR. OFF';
+  } else {
+    v.body=el('circle',{cx:L.x,cy,r:28,fill:'#0a1128',stroke:'#cfd8ff','stroke-width':3},g);
+    v.imp=el('g',{},g);
+    for(let a=0;a<3;a++) el('path',{d:`M${L.x},${cy} q 8,-10 0,-22 q -8,10 0,22`,fill:'#b47cff',transform:`rotate(${a*120} ${L.x} ${cy})`},v.imp);
+    el('circle',{cx:L.x,cy,r:4,fill:'#cfd8ff'},g);
+  }
+  v.ang=0;
+  const t1=el('text',{x:L.x,y:botY+28,'text-anchor':'middle','font-size':17,'font-weight':700,fill:L.hex},g); t1.textContent=L.name;
+  v.lab=el('text',{x:L.x,y:botY+47,'text-anchor':'middle','font-size':15,fill:'#8c9bc7'},g);
+  v.iTxt=el('text',{x:L.x+8,y:topY+40,'font-size':15,'font-weight':700,fill:'#5fe3ff'},g);
+  VIS.push(v);
+});
+
+// ---------- schede dei carichi ----------
+const cards=$('loadCards');
+LOADS.forEach((L,k)=>{
+  const d=document.createElement('div'); d.className='load'; d.style.setProperty('--c',L.c);
+  d.innerHTML=`<div class="nm"><span>${L.name}</span><span class="chip">OFF</span></div>
+   <div class="sub">${L.P} W · ${fmt(L.P/V,1)} A quando è acceso</div>
+   <div class="wh">0 Wh</div><div class="sub e2">oggi: 0 Wh · 0% del totale</div>
+   <div class="bar"><i></i></div><button class="sw">Componente attivo</button>`;
+  cards.appendChild(d);
+  d.querySelector('.sw').onclick=()=>{S.enabled[k]=!S.enabled[k];paintSwitch(k);};
+  L.card=d;
+});
+function paintSwitch(k){const b=LOADS[k].card.querySelector('.sw');b.classList.toggle('off',!S.enabled[k]);
+  b.textContent=S.enabled[k]?'Componente attivo':'Spento dall\'utente';}
+const leg=LOADS.map(L=>`<span style="--c:${L.hex}">${L.name}</span>`).join('');
+$('legend').innerHTML='<span style="--c:#5fe3ff">verso della corrente (dal + al −)</span>';
+$('legend2').innerHTML=`<span style="--c:#3ddc84">Energia rimasta nella batteria</span>`+leg;
+
+// ---------- programma giornaliero (Gantt) ----------
+const G=$('gantt'); const gx0=110,gx1=545,gw=gx1-gx0;
+for(let h=0;h<=24;h+=3){const x=gx0+gw*h/24;el('line',{x1:x,y1:20,x2:x,y2:215,stroke:'#26335f'},G);
+  const t=el('text',{x,y:235,'text-anchor':'middle','font-size':13,fill:'#8c9bc7'},G);t.textContent=String(h).padStart(2,'0')+':00';}
+LOADS.forEach((L,k)=>{const y=30+k*47;
+  const t=el('text',{x:0,y:y+20,'font-size':16,'font-weight':700,fill:L.hex},G);t.textContent=L.name;
+  el('rect',{x:gx0,y,width:gw,height:28,rx:5,fill:'#0a1128'},G);
+  L.sched.forEach(([a,b])=>el('rect',{x:gx0+gw*a/1440,y:y+2,width:Math.max(2,gw*(b-a)/1440),height:24,rx:3,fill:L.hex,opacity:.85},G));
+});
+const cursor=el('line',{x1:gx0,y1:18,x2:gx0,y2:217,stroke:'#fff','stroke-width':2.5},G);
+const cursorHead=el('circle',{cx:gx0,cy:18,r:5,fill:'#fff'},G);
+
+// ---------- simulazione ----------
+function step(dtMin){
+  let left=dtMin;
+  while(left>1e-9 && !S.empty){
+    const h=Math.min(0.25,left);
+    const tod=S.t%1440;
+    const day=Math.floor(S.t/1440);
+    if(day!==S.dayIdx){S.dayIdx=day;S.Eday=[0,0,0,0];}
+    let P=0;
+    for(let k=0;k<4;k++){S.onNow[k]=(S.enabled[k]&&LOADS[k].on(tod))?1:0;P+=S.onNow[k]*LOADS[k].P;}
+    let dE=P*h/60;
+    if(dE>=S.rem && P>0){ // la batteria si esaurisce in questo passo
+      const hh=S.rem/P*60;
+      for(let k=0;k<4;k++){const e=S.onNow[k]*LOADS[k].P*hh/60;S.E[k]+=e;S.Eday[k]+=e;}
+      S.t+=hh;S.rem=0;S.empty=true;S.onNow=[0,0,0,0];sample(true);onEmpty();break;
+    }
+    for(let k=0;k<4;k++){const e=S.onNow[k]*LOADS[k].P*h/60;S.E[k]+=e;S.Eday[k]+=e;}
+    S.rem-=dE;S.t+=h;left-=h;sample(false);
+  }
+}
+function sample(force){const slot=Math.floor(S.t/5);if(force||slot!==S.lastSample){S.lastSample=slot;S.samples.push({t:S.t,rem:S.rem,E:S.E.slice()});}}
+function onEmpty(){
+  S.running=false;$('play').textContent='▶ Avvia';
+  const d=Math.floor(S.t/1440)+1, tod=S.t%1440;
+  const hh=Math.floor(tod/60), mm=Math.floor(tod%60);
+  $('ovTxt').innerHTML=`Si è scaricata il <b>giorno ${d}</b> alle <b>${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}</b><br>dopo <b>${fmt(S.t/60,1)} ore</b> (${fmt(S.t/1440,2)} giorni)`;
+  const tot=S.E.reduce((a,b)=>a+b,0); const iMax=S.E.indexOf(Math.max(...S.E));
+  $('ovNote').textContent=`Energia totale fornita: ${fmt(tot)} Wh. Il componente che ha consumato di più è: ${LOADS[iMax].name} (${fmt(100*S.E[iMax]/tot)}%).`;
+  setTimeout(()=>$('ov').classList.add('show'),400);
+}
+
+// ---------- disegno ----------
+const chart=$('chart'), ctx=chart.getContext('2d');
+function sizeCanvas(){const r=chart.getBoundingClientRect(),dpr=window.devicePixelRatio||1;chart.width=r.width*dpr;chart.height=300*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);}
+window.addEventListener('resize',()=>{sizeCanvas();drawChart();});
+function drawChart(){
+  const W=chart.getBoundingClientRect().width,Hh=300,l=52,r=12,t=14,b=34,pw=W-l-r,ph=Hh-t-b;
+  ctx.clearRect(0,0,W,Hh);
+  const xMaxH=Math.max(48,Math.ceil(S.t/60/24)*24), cap=S.capWh;
+  const X=m=>l+pw*(m/60)/xMaxH, Y=wh=>t+ph*(1-wh/cap);
+  // notte
+  for(let d=0;d*24<xMaxH;d++){ctx.fillStyle='rgba(80,100,200,.10)';
+    ctx.fillRect(X((d*24)*60),t,X(6*60)-X(0),ph);ctx.fillRect(X((d*24+20)*60),t,X(4*60)-X(0),ph);}
+  // griglia
+  ctx.strokeStyle='#26335f';ctx.fillStyle='#8c9bc7';ctx.font='600 13px Rajdhani, sans-serif';ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const wh=cap*i/4,y=Y(wh);ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(l+pw,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(fmt(wh)+' Wh',l-6,y+4);}
+  ctx.textAlign='center';
+  for(let h=0;h<=xMaxH;h+=6){const x=X(h*60);ctx.fillText(h%24===0?`G${h/24+1}`:`${h%24}h`,x,t+ph+18);
+    if(h%24===0){ctx.save();ctx.setLineDash([5,5]);ctx.strokeStyle='#4a5a90';ctx.beginPath();ctx.moveTo(x,t);ctx.lineTo(x,t+ph);ctx.stroke();ctx.restore();}}
+  ctx.fillText('tempo',l+pw/2,Hh-2);
+  const sm=S.samples; if(sm.length<2)return;
+  // aree impilate: batteria rimasta in basso, poi consumi
+  const order=[2,3,1,0];
+  const layers=[{col:'#3ddc84',f:s=>s.rem}];
+  order.forEach(k=>layers.push({col:LOADS[k].hex,f:s=>s.E[k]}));
+  let base=sm.map(()=>0);
+  layers.forEach(L=>{
+    const top=sm.map((s,i)=>base[i]+L.f(s));
+    ctx.beginPath();sm.forEach((s,i)=>i?ctx.lineTo(X(s.t),Y(top[i])):ctx.moveTo(X(s.t),Y(top[i])));
+    for(let i=sm.length-1;i>=0;i--)ctx.lineTo(X(sm[i].t),Y(base[i]));
+    ctx.closePath();ctx.fillStyle=L.col+'cc';ctx.fill();
+    base=top;
+  });
+  // linea della batteria
+  ctx.beginPath();sm.forEach((s,i)=>i?ctx.lineTo(X(s.t),Y(s.rem)):ctx.moveTo(X(s.t),Y(s.rem)));
+  ctx.strokeStyle='#fff';ctx.lineWidth=2.5;ctx.stroke();
+  const last=sm[sm.length-1];ctx.beginPath();ctx.arc(X(last.t),Y(last.rem),5,0,7);ctx.fillStyle='#fff';ctx.fill();
+}
+function batColor(p){return p>0.5?'#3ddc84':p>0.2?'#ffd23f':'#ff4d6d';}
+function skyFor(tod){const h=tod/60;
+  if(h<5||h>=21)return['#050a1e','#14204a',false];
+  if(h<7)return['#3b2a6b','#ff9f6b',true];
+  if(h<18)return['#2b7bff','#9fd4ff',true];
+  return['#3b2a6b','#ff7f50',true];}
+let lastReal=performance.now();
+function frame(now){
+  const dt=Math.min(0.1,(now-lastReal)/1000);lastReal=now;
+  if(S.running&&!S.empty) step(+$('speed').value*dt);
+  else if(!S.empty){const tod=S.t%1440;for(let k=0;k<4;k++)S.onNow[k]=(S.enabled[k]&&LOADS[k].on(tod))?1:0;}
+  render(dt);requestAnimationFrame(frame);
+}
+function render(dt){
+  const tod=S.t%1440, p=S.rem/S.capWh;
+  // orologio
+  $('day').textContent='Giorno '+(Math.floor(S.t/1440)+1);
+  $('time').textContent=String(Math.floor(tod/60)).padStart(2,'0')+':'+String(Math.floor(tod%60)).padStart(2,'0');
+  $('elapsed').textContent='tempo trascorso: '+fmt(S.t/60,1)+' h';
+  const [c1,c2,isSun]=skyFor(tod); $('sky').style.background=`linear-gradient(${c1},${c2})`;
+  const orb=$('orb'); const ang=((tod/1440)*2*Math.PI);
+  orb.style.top=(isSun?(60-40*Math.sin(Math.PI*((tod/60-6)/14))):18)+'px';
+  orb.style.background=isSun?'radial-gradient(#fff6b0,#ffc83a)':'radial-gradient(#ffffff,#c8d2ff)';
+  orb.style.boxShadow=isSun?'0 0 22px #ffd23f':'0 0 14px #c8d2ff';
+  // batteria
+  const col=batColor(p);
+  $('batFill').style.height=`calc(${(p*100).toFixed(2)}% - 10px)`;$('batFill').style.background=col;
+  $('pct').textContent=fmt(p*100,1)+'%';$('pct').style.color=col;
+  $('whLeft').textContent=fmt(S.rem,1)+' Wh';$('ahLeft').textContent=fmt(S.rem/V,1)+' Ah';
+  const tot=S.E.reduce((a,b)=>a+b,0);$('whUsed').textContent=fmt(tot,1)+' Wh';
+  const fh=142*p;const sf=$('sBatFill');sf.setAttribute('y',114+142-fh);sf.setAttribute('height',Math.max(0,fh));sf.setAttribute('fill',col);
+  $('sBatTxt').textContent=fmt(p*100)+'%';
+  const P=S.onNow.reduce((a,o,k)=>a+o*LOADS[k].P,0),It=P/V;
+  $('pNow').textContent=fmt(P)+' W';$('iNow').textContent=fmt(It,1)+' A';
+  $('fuseBar').style.width=Math.min(100,It*10)+'%';
+  $('fuse').setAttribute('fill',It>0?`rgba(255,${Math.round(220-It*15)},80,${0.25+It/12})`:'#18224a');
+  // flussi di corrente
+  SEG.forEach(s=>{const i=s.fn();if(i>0){s.off-=dt*(18+16*i);s.p.setAttribute('stroke-dashoffset',s.off);s.p.setAttribute('opacity',1);s.p.setAttribute('stroke-width',2+0.6*i);}else s.p.setAttribute('opacity',0);});
+  // componenti
+  const maxE=Math.max(50,...S.E);
+  LOADS.forEach((L,k)=>{const v=VIS[k],on=S.onNow[k];
+    v.glow.setAttribute('opacity',on?(L.type==='lamp'?0.95:0.7):0);
+    v.body.setAttribute('stroke',on?L.hex:(S.enabled[k]?'#cfd8ff':'#5a3344'));
+    v.lab.textContent=on?`${L.P} W · ${fmt(L.P/V,1)} A`:(S.enabled[k]?'spento':'escluso');
+    v.iTxt.textContent=on?fmt(L.P/V,1)+' A':'';
+    if(L.type==='pump'){if(on)v.ang+=dt*720;v.imp.setAttribute('transform',`rotate(${v.ang} ${L.x} 185)`);}
+    if(L.type==='fridge'){v.comp.textContent=on?'COMPR. ON':'COMPR. OFF';v.comp.setAttribute('fill',on?'#3fd0ff':'#8c9bc7');}
+    const c=L.card;c.classList.toggle('on',!!on);c.querySelector('.chip').textContent=on?'ON':'OFF';
+    c.querySelector('.wh').textContent=fmt(S.E[k],1)+' Wh';
+    c.querySelector('.e2').textContent=`oggi: ${fmt(S.Eday[k],1)} Wh · ${tot>0?fmt(100*S.E[k]/tot):0}% del totale`;
+    c.querySelector('.bar i').style.width=(100*S.E[k]/maxE)+'%';
+  });
+  const cx=gx0+gw*tod/1440;cursor.setAttribute('x1',cx);cursor.setAttribute('x2',cx);cursorHead.setAttribute('cx',cx);
+  drawChart();
+}
+function reset(){S=newState();S.samples=[{t:0,rem:S.rem,E:[0,0,0,0]}];$('ov').classList.remove('show');
+  $('play').textContent='▶ Avvia';LOADS.forEach((_,k)=>paintSwitch(k));}
+$('play').onclick=()=>{if(S.empty){reset();}S.running=!S.running;$('play').textContent=S.running?'⏸ Pausa':'▶ Avvia';};
+$('reset').onclick=reset;$('ovBtn').onclick=()=>{reset();};
+$('cap').onchange=reset;
+reset();sizeCanvas();requestAnimationFrame(frame);
+</script>
+</body>
+</html>
